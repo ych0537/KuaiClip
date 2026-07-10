@@ -1,0 +1,33 @@
+# Xcode
+DerivedData/
+build/
+*.xcworkspace
+*.xcuserstate
+xcuserdata/
+
+# Swift Package
+.build/
+Packages/
+*.xcodeproj
+
+# macOS App
+*.app
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+
+# Artifacts
+/release/
