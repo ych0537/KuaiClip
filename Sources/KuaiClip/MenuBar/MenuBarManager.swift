@@ -322,9 +322,12 @@ extension MenuBarManager: NSWindowDelegate {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 150_000_000) // 0.15s
             let km = MenuBarManager.shared
+            let popupOwnsKeySheet = km.popupWindow?.attachedSheet != nil ||
+                NSApp.keyWindow?.sheetParent === km.popupWindow
              // If our popup is no longer key (user clicked elsewhere), dismiss
             if km.isPopupVisible,
                !km.isPopupAlertPresented,
+               !popupOwnsKeySheet,
                NSApp.keyWindow == nil || !(NSApp.keyWindow is PopupPanel) {
                 km.dismissPopup()
              }

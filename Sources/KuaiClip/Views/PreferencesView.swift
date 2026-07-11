@@ -102,7 +102,7 @@ struct PreferencesView: View {
             }
 
             Section(L10n.appIcon) {
-                HStack(spacing: 14) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
                     ForEach(AppIconTheme.allCases) { icon in
                         Button {
                             appIconTheme = icon.rawValue
@@ -112,7 +112,7 @@ struct PreferencesView: View {
                                 if let image = icon.appImage {
                                     Image(nsImage: image)
                                         .resizable()
-                                        .frame(width: 58, height: 58)
+                                        .frame(width: 64, height: 64)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                                 Text(icon.title)
@@ -120,7 +120,7 @@ struct PreferencesView: View {
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(8)
+                            .padding(7)
                             .background(
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(

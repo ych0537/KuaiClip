@@ -17,6 +17,9 @@ enum L10n {
     static var about: String { text("About", "情報") }
     static var aiPolish: String { text("AI Polish", "AI文章校正") }
     static var aiProviders: String { text("AI Provider API Keys", "AIプロバイダーのAPIキー") }
+    static var aiProvider: String { text("AI provider", "AIプロバイダー") }
+    static var apiKey: String { text("API key", "APIキー") }
+    static var saveAPIKey: String { text("Save API Key", "APIキーを保存") }
     static var saveAPIKeys: String { text("Save API Keys", "APIキーを保存") }
     static var savedInKeychain: String { text("Saved securely in macOS Keychain", "macOSキーチェーンに安全に保存しました") }
     static var apiKeyPrivacy: String { text("Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.", "キーはmacOSキーチェーンに保存されます。文章は校正時に選択したプロバイダーにのみ送信されます。") }
@@ -52,6 +55,9 @@ enum L10n {
     static var pandaTyping: String { text("Typing Panda", "タイピングパンダ") }
     static var pandaBricks: String { text("Brick Panda", "搬砖パンダ") }
     static var sealBalloon: String { text("Balloon Seal", "風船アザラシ") }
+    static var foxEnvelope: String { text("Mail Fox", "メールキツネ") }
+    static var owlChecklist: String { text("Checklist Owl", "チェックフクロウ") }
+    static var otterTyping: String { text("Typing Otter", "タイピングカワウソ") }
     static var historyItems: String { text("History items", "履歴項目") }
     static var clearAll: String { text("Clear All History", "すべての履歴を消去") }
     static var popupActivation: String { text("Popup Activation", "ポップアップ起動") }

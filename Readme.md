@@ -45,7 +45,7 @@
 - ↔️ **Remembered popup size** — resize once and the next popup restores that size
 - ✨ **AI workplace polish** — refine Chinese, English, or Japanese email text with OpenAI, Gemini, or DeepSeek
 - 🖼 **Uniform image thumbnails** — preview copied images in consistently sized history rows
-- 🐼 **Selectable app icons** — switch the app and menu bar icon between three monochrome mascots
+- 🐼 **Selectable app icons** — switch the app and menu bar icon between six monochrome mascots
 
 ### Quick Manual
 
@@ -276,7 +276,7 @@ Paste simulation also requires **Accessibility** permission (see above). Without
 <details>
 <summary><strong>Theme toggle button doesn't respond</strong></summary>
 
-Make sure you're running the latest version (v0.2+). If the issue persists, try:
+Make sure you're running the latest version (v0.3+). If the issue persists, try:
 1. Quit and restart KuaiClip
 2. Delete preferences: `defaults delete com.kuaiclip.clipboard`
 </details>
@@ -373,7 +373,7 @@ All clipboard history is stored in macOS UserDefaults:
 - ↔️ **ポップアップサイズ記憶** — 調整した幅と高さを次回表示時に復元
 - ✨ **AIビジネス文章校正** — OpenAI、Gemini、DeepSeekで中国語・英語・日本語のメール文章を自然に校正
 - 🖼 **統一サイズの画像サムネイル** — コピーした画像を履歴内で同じサイズに揃えて表示
-- 🐼 **選べるアプリアイコン** — アプリとメニューバーのアイコンを3種類のモノクロマスコットから選択
+- 🐼 **選べるアプリアイコン** — アプリとメニューバーのアイコンを6種類のモノクロマスコットから選択
 
 ### かんたん操作マニュアル
 
@@ -604,7 +604,7 @@ xattr -dr com.apple.quarantine /Applications/KuaiClip.app
 <details>
 <summary><strong>テーマ切替ボタンが反応しない</strong></summary>
 
-最新バージョン（v0.2以降）を使用していることを確認してください。それでも問題が発生する場合：
+最新バージョン（v0.3以降）を使用していることを確認してください。それでも問題が発生する場合：
 1. KuaiClip を終了して再起動
 2. 設定をリセット：`defaults delete com.kuaiclip.clipboard`
 </details>

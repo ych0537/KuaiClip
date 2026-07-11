@@ -80,7 +80,10 @@ struct PopupView: View {
             Text(L10n.pinLimitMessage)
         }
         .sheet(item: $polishItem) { item in
-            TextPolishView(source: item.content)
+            TextPolishView(source: item.content) {
+                polishItem = nil
+                DispatchQueue.main.async { onDismiss() }
+            }
         }
         .modifier(PopupKeyboardHandler(
             selectedIndex: $selectedIndex,

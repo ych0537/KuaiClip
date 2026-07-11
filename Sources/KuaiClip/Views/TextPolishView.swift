@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TextPolishView: View {
     let source: String
+    let onCopy: () -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appearanceMode") private var appearanceMode = "light"
     @State private var result = ""
@@ -83,5 +84,6 @@ struct TextPolishView: View {
         ClipboardMonitor.shared.setIgnoreNextCopy(true)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(result, forType: .string)
+        onCopy()
     }
 }

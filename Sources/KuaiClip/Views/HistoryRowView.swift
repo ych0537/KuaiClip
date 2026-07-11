@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A single row in the clipboard history list
 struct HistoryRowView: View {
-    private static let thumbnailSize: CGFloat = 44
+    private static let thumbnailSize: CGFloat = 88
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
@@ -114,7 +114,14 @@ struct HistoryRowView: View {
             }
         }
         .onTapGesture { onTap() }
-        .onHover { h in if h { scheduleTooltip() } else { cancelTooltip(); showTooltip = false } }
+        .onHover { hovering in
+            if hovering && needsTextTooltip {
+                scheduleTooltip()
+            } else {
+                cancelTooltip()
+                showTooltip = false
+            }
+        }
         .popover(isPresented: $showTooltip, arrowEdge: .trailing) {
             ScrollView {
                 Text(item.isContentHidden
@@ -125,6 +132,13 @@ struct HistoryRowView: View {
         }
         .simultaneousGesture(TapGesture(count: 1).modifiers(.option).onEnded { onOptionTap() })
         .simultaneousGesture(TapGesture(count: 1).modifiers([.option, .shift]).onEnded { onOptionShiftTap() })
+    }
+
+    private var needsTextTooltip: Bool {
+        guard item.contentType != .image, !item.isContentHidden else { return false }
+        let normalized = item.content.replacingOccurrences(of: "\t", with: " ")
+        let lineCount = normalized.split(separator: "\n", omittingEmptySubsequences: false).count
+        return normalized.count > 60 || lineCount > 2
     }
 
     @ViewBuilder

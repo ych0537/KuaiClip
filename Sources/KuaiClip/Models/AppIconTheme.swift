@@ -7,6 +7,9 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
     case pandaTyping = "panda-typing"
     case pandaBricks = "panda-bricks"
     case sealBalloon = "seal-balloon"
+    case foxEnvelope = "fox-envelope"
+    case owlChecklist = "owl-checklist"
+    case otterTyping = "otter-typing"
 
     var id: String { rawValue }
 
@@ -20,6 +23,9 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
         case .pandaTyping: return L10n.pandaTyping
         case .pandaBricks: return L10n.pandaBricks
         case .sealBalloon: return L10n.sealBalloon
+        case .foxEnvelope: return L10n.foxEnvelope
+        case .owlChecklist: return L10n.owlChecklist
+        case .otterTyping: return L10n.otterTyping
         }
     }
 
@@ -39,11 +45,12 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
     }
 
     private func image(named name: String) -> NSImage? {
-        guard let url = Bundle.module.url(
+        let url = Bundle.module.url(
             forResource: name,
             withExtension: "png",
             subdirectory: "IconThemes"
-        ) else { return nil }
+        ) ?? Bundle.module.url(forResource: name, withExtension: "png")
+        guard let url else { return nil }
         return NSImage(contentsOf: url)
     }
 }
