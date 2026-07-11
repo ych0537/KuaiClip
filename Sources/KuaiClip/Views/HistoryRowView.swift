@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// A single row in the clipboard history list
@@ -20,16 +21,22 @@ struct HistoryRowView: View {
 
     @State private var showTooltip: Bool = false
     @State private var tooltipWorkItem: DispatchWorkItem?
+    @State private var isTextTruncated: Bool = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             Text(shortcutLabel)
-                .font(theme.codeFont(size: shortcutLabel.count >= 3 ? 11 : 14, weight: .bold))
-                .foregroundColor(
-                    isSelected ? theme.foreground :
-                    theme.accent.opacity(0.8)
-                )
-                .frame(width: 28, alignment: .center)
+                .font(theme.codeFont(size: shortcutLabel.count >= 3 ? 10 : 12, weight: .bold))
+                .foregroundColor(isSelected ? .white : theme.accent)
+                .frame(width: 26, height: 26)
+                .background {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(isSelected ? theme.accent : theme.accent.opacity(0.10))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 7)
+                        .stroke(theme.accent.opacity(isSelected ? 0 : 0.22), lineWidth: 0.5)
+                }
 
             if item.contentType == .image, !item.isContentHidden {
                 imageThumbnail
@@ -47,13 +54,20 @@ struct HistoryRowView: View {
                             .font(.system(size: 7))
                             .foregroundColor(isSelected ? theme.foreground.opacity(0.5) : .secondary)
                     }
-                    Text(item.isContentHidden
-                         ? String(repeating: "•", count: min(item.content.count, 20))
-                         : item.preview)
+                    Text(rowDisplayText)
                         .font(theme.uiFont(size: 12))
                         .lineLimit(2)
                         .foregroundColor(theme.foreground)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            GeometryReader { geometry in
+                                Color.clear
+                                    .onAppear { updateTruncation(for: geometry.size.width) }
+                                    .onChange(of: geometry.size.width) { _, width in
+                                        updateTruncation(for: width)
+                                    }
+                            }
+                        }
                 }
             }
 
@@ -124,21 +138,51 @@ struct HistoryRowView: View {
         }
         .popover(isPresented: $showTooltip, arrowEdge: .trailing) {
             ScrollView {
-                Text(item.isContentHidden
-                     ? String(repeating: "•", count: min(item.content.count, 40)) : item.content)
-                    .font(theme.uiFont(size: 11)).padding(8)
-                    .frame(minWidth: 220, maxWidth: 360, maxHeight: 180)
-            }.frame(minWidth: 220, maxWidth: 360, maxHeight: 180)
+                Text(item.content)
+                    .font(theme.uiFont(size: 12))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+            }
+            .frame(width: 420, height: 240)
         }
         .simultaneousGesture(TapGesture(count: 1).modifiers(.option).onEnded { onOptionTap() })
         .simultaneousGesture(TapGesture(count: 1).modifiers([.option, .shift]).onEnded { onOptionShiftTap() })
     }
 
     private var needsTextTooltip: Bool {
-        guard item.contentType != .image, !item.isContentHidden else { return false }
-        let normalized = item.content.replacingOccurrences(of: "\t", with: " ")
-        let lineCount = normalized.split(separator: "\n", omittingEmptySubsequences: false).count
-        return normalized.count > 60 || lineCount > 2
+        item.contentType != .image && !item.isContentHidden && isTextTruncated
+    }
+
+    private var rowDisplayText: String {
+        if item.isContentHidden {
+            return String(repeating: "•", count: min(item.content.count, 20))
+        }
+        return item.content
+            .replacingOccurrences(of: "\t", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func updateTruncation(for width: CGFloat) {
+        guard item.contentType != .image, !item.isContentHidden, width > 0 else {
+            isTextTruncated = false
+            return
+        }
+        let font = NSFont.systemFont(ofSize: 12)
+        let bounds = (rowDisplayText as NSString).boundingRect(
+            with: NSSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font]
+        )
+        let truncated = ceil(bounds.height) > ceil(font.boundingRectForFont.height * 2) + 1
+        if isTextTruncated != truncated {
+            isTextTruncated = truncated
+            if !truncated {
+                cancelTooltip()
+                showTooltip = false
+            }
+        }
     }
 
     @ViewBuilder

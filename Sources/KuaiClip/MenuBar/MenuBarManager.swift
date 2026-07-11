@@ -154,7 +154,7 @@ final class MenuBarManager: NSObject {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.hasShadow = false
+        window.hasShadow = true
         window.isOpaque = false
         window.backgroundColor = .clear
         window.minSize = Self.minimumPopupSize

@@ -6,6 +6,7 @@ struct TextPolishView: View {
     let onCopy: () -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appearanceMode") private var appearanceMode = "light"
+    @AppStorage("appLanguage") private var appLanguage = "en"
     @State private var result = ""
     @State private var selectedModel: AIModel?
     @State private var isLoading = false
@@ -44,8 +45,14 @@ struct TextPolishView: View {
                     ForEach(models) { Text($0.displayName).tag(Optional($0)) }
                 }.frame(width: 250)
                 Button { runPolish() } label: {
-                    if isLoading { ProgressView().controlSize(.small) } else { Image(systemName: "arrow.up.circle.fill") }
-                }.disabled(isLoading || selectedModel == nil || isOverLimit)
+                    HStack(spacing: 6) {
+                        if isLoading { ProgressView().controlSize(.small) }
+                        Text(L10n.polishAction)
+                    }
+                    .frame(minWidth: 72)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isLoading || selectedModel == nil || isOverLimit)
             }
             if models.isEmpty {
                 Text(L10n.configureAIKey).foregroundStyle(.orange).font(.caption)
@@ -84,6 +91,7 @@ struct TextPolishView: View {
         ClipboardMonitor.shared.setIgnoreNextCopy(true)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(result, forType: .string)
+        HistoryStore.shared.addItem(result, contentType: .text)
         onCopy()
     }
 }

@@ -41,7 +41,7 @@
 - 🔄 **Recent-use ordering** — identical copies and recently used unpinned items move to the top
 - ⚡ **Direct paste** — copy + paste into the frontmost app in one action
 - 🚀 **Launch at login** — optional, configurable in Preferences
-- 🌐 **Multi-language** — English / 日本語 interface
+- 🌐 **Multi-language** — English / 日本語 / 简体中文 interface
 - ↔️ **Remembered popup size** — resize once and the next popup restores that size
 - ✨ **AI workplace polish** — refine Chinese, English, or Japanese email text with OpenAI, Gemini, or DeepSeek
 - 🖼 **Uniform image thumbnails** — preview copied images in consistently sized history rows
@@ -163,7 +163,7 @@ open KuaiClip.app
 
 | Section | Options |
 |---------|---------|
-| **General** | Max history items (10–100), Polling interval (0.25–2.0 s), Launch at login, Strip formatting by default, Language (English / 日本語) |
+| **General** | Max history items (10–100), Polling interval (0.25–2.0 s), Launch at login, Strip formatting by default, Language (English / 日本語 / 简体中文) |
 | **Shortcuts** | Activation mode (Double-tap ⌘ / Custom hotkey with Record button), Shortcut reference |
 | **AI Polish** | OpenAI, Gemini, and DeepSeek API keys stored in macOS Keychain |
 | **About** | App icon, version info |
@@ -276,7 +276,7 @@ Paste simulation also requires **Accessibility** permission (see above). Without
 <details>
 <summary><strong>Theme toggle button doesn't respond</strong></summary>
 
-Make sure you're running the latest version (v0.3+). If the issue persists, try:
+Make sure you're running the latest version (v0.4+). If the issue persists, try:
 1. Quit and restart KuaiClip
 2. Delete preferences: `defaults delete com.kuaiclip.clipboard`
 </details>
@@ -369,7 +369,7 @@ All clipboard history is stored in macOS UserDefaults:
 - 🔄 **最近使用した順に整列** — 同一内容と使用済みの未固定項目は先頭に移動
 - ⚡ **ダイレクトペースト** — コピー＋貼り付けをワンアクションで
 - 🚀 **ログイン時起動** — 設定からオン/オフ可能
-- 🌐 **多言語対応** — English / 日本語
+- 🌐 **多言語対応** — English / 日本語 / 简体中文
 - ↔️ **ポップアップサイズ記憶** — 調整した幅と高さを次回表示時に復元
 - ✨ **AIビジネス文章校正** — OpenAI、Gemini、DeepSeekで中国語・英語・日本語のメール文章を自然に校正
 - 🖼 **統一サイズの画像サムネイル** — コピーした画像を履歴内で同じサイズに揃えて表示
@@ -491,7 +491,7 @@ open KuaiClip.app
 
 | セクション | 項目 |
 |------------|------|
-| **一般** | 最大履歴数（10～100）、ポーリング間隔（0.25～2.0秒）、ログイン時起動、デフォルトで書式なし貼り付け、言語（English / 日本語） |
+| **一般** | 最大履歴数（10～100）、ポーリング間隔（0.25～2.0秒）、ログイン時起動、デフォルトで書式なし貼り付け、言語（English / 日本語 / 简体中文） |
 | **ショートカット** | 起動モード（ダブルタップ⌘ / カスタムホットキー＋録音ボタン）、ショートカット一覧 |
 | **AI文章校正** | macOSキーチェーンに保存するOpenAI、Gemini、DeepSeekのAPIキー |
 | **About** | アプリアイコン、バージョン情報 |
@@ -604,7 +604,7 @@ xattr -dr com.apple.quarantine /Applications/KuaiClip.app
 <details>
 <summary><strong>テーマ切替ボタンが反応しない</strong></summary>
 
-最新バージョン（v0.3以降）を使用していることを確認してください。それでも問題が発生する場合：
+最新バージョン（v0.4以降）を使用していることを確認してください。それでも問題が発生する場合：
 1. KuaiClip を終了して再起動
 2. 設定をリセット：`defaults delete com.kuaiclip.clipboard`
 </details>

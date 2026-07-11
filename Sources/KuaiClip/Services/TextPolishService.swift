@@ -14,7 +14,7 @@ enum AIModel: String, CaseIterable, Identifiable {
         return "OpenAI"
     }
     var keyAccount: String { provider.lowercased() }
-    var displayName: String { "\(provider) · \(rawValue)" }
+    var displayName: String { rawValue }
 }
 
 enum TextPolishError: LocalizedError {

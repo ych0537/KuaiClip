@@ -21,6 +21,7 @@ struct TestRunner {
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
+            try expect(AIModel.deepSeekFlash.displayName == "deepseek-v4-flash", "AI model picker should show only the model ID")
             print("All KuaiClip tests passed")
         } catch {
             fputs("Test failed: \(error)\n", stderr)
@@ -67,12 +68,23 @@ struct TestRunner {
             try expect(L10n.timeAgo(30, date: Date()) == "たった今", "Japanese relative time")
         }
 
+        try withLanguage("zh") {
+            try expect(L10n.search == "搜索…", "Chinese search text")
+            try expect(L10n.clearUnpinned == "清除未固定项目", "Chinese menu text")
+            try expect(L10n.pinLimitTitle == "已达到固定项目上限", "Chinese pin limit title")
+            try expect(L10n.timeAgo(30, date: Date()) == "刚刚", "Chinese relative time")
+            try expect(L10n.polishAction == "润色", "Chinese polish action")
+        }
+
         let item = ClipboardItem(content: "")
         try withLanguage("en") {
             try expect(item.preview == "(empty)", "English empty preview")
         }
         try withLanguage("ja") {
             try expect(item.preview == "（空）", "Japanese empty preview")
+        }
+        try withLanguage("zh") {
+            try expect(item.preview == "（空）", "Chinese empty preview")
         }
     }
 

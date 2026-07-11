@@ -3,6 +3,10 @@ import AppKit
 import ServiceManagement
 
 struct PreferencesView: View {
+    private enum SettingsTab: String, CaseIterable {
+        case general, shortcuts, ai, about
+    }
+
     @AppStorage("maxHistoryItems") private var maxHistoryItems: Int = HistoryStore.defaultUnpinnedItems
     @AppStorage("pollingInterval") private var pollingInterval: Double = 0.5
     @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
@@ -17,15 +21,25 @@ struct PreferencesView: View {
     @State private var historyCount: Int = 0
     @State private var isRecording: Bool = false
     @State private var recordMonitor: Any?
+    @State private var selectedTab: SettingsTab = .general
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
 
     var body: some View {
-        TabView {
-            generalTab.tabItem { Label(L10n.general, systemImage: "gearshape") }
-            shortcutsTab.tabItem { Label(L10n.shortcuts, systemImage: "keyboard") }
-            AISettingsView().tabItem { Label(L10n.aiPolish, systemImage: "wand.and.stars") }
-            aboutTab.tabItem { Label(L10n.about, systemImage: "info.circle") }
+        VStack(spacing: 0) {
+            Picker("", selection: $selectedTab) {
+                Text(L10n.general).tag(SettingsTab.general)
+                Text(L10n.shortcuts).tag(SettingsTab.shortcuts)
+                Text(L10n.aiPolish).tag(SettingsTab.ai)
+                Text(L10n.about).tag(SettingsTab.about)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 430)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            selectedTabContent
         }
         .frame(width: 520, height: 520)
         .background(theme.background)
@@ -40,6 +54,16 @@ struct PreferencesView: View {
         .onDisappear { stopRecording() }
         .onChange(of: appLanguage) { _, _ in
             MenuBarManager.shared.refreshLocalization()
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .general: generalTab
+        case .shortcuts: shortcutsTab
+        case .ai: AISettingsView()
+        case .about: aboutTab
         }
     }
 
@@ -92,10 +116,11 @@ struct PreferencesView: View {
                     Picker("", selection: $appLanguage) {
                         Text("English").tag("en")
                         Text("日本語").tag("ja")
+                        Text("简体中文").tag("zh")
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
-                    .frame(width: 170)
+                    .frame(width: 265)
                 } label: {
                     settingLabel(L10n.language, icon: "globe")
                 }

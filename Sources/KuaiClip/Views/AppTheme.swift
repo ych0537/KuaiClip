@@ -50,8 +50,8 @@ enum AppTheme: String {
 
     var border: Color {
         switch self {
-        case .light: return foreground.opacity(0.12)
-        case .dark: return .white.opacity(0.16)
+        case .light: return foreground.opacity(0.20)
+        case .dark: return .white.opacity(0.20)
         }
     }
 
