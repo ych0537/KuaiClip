@@ -21,6 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.setActivationPolicy(.accessory)
         AppTheme.applyAppearance(AppTheme.migrateStoredAppearance())
+        if let icon = AppIconTheme.selected.appImage {
+            NSApp.applicationIconImage = icon
+        }
 
         // Set up menu bar
         MenuBarManager.shared.setup()

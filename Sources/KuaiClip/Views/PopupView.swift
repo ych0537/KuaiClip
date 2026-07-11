@@ -8,6 +8,7 @@ struct PopupView: View {
     @State private var keyboardScrollRequest: Int = 0
     @State private var isMouseScrolling: Bool = false
     @State private var showPinLimitAlert: Bool = false
+    @State private var polishItem: ClipboardItem?
     private let historyStore = HistoryStore.shared
     @FocusState private var isSearchFocused: Bool
 
@@ -77,6 +78,9 @@ struct PopupView: View {
             }
         } message: {
             Text(L10n.pinLimitMessage)
+        }
+        .sheet(item: $polishItem) { item in
+            TextPolishView(source: item.content)
         }
         .modifier(PopupKeyboardHandler(
             selectedIndex: $selectedIndex,
@@ -188,6 +192,7 @@ struct PopupView: View {
                         onToggleHide: { toggleHideContent(item) },
                         onDelete: { deleteItem(item) },
                         onTogglePin: { togglePinSelected(item) },
+                        onPolish: { polishItem = item },
                         theme: theme
                     )
                     .id(index)

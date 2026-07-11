@@ -20,10 +20,23 @@ struct TestRunner {
                 try runLocalizationTests()
                 try imageEncodingPreservesOriginalDimensions()
             }
+            try await textPolishRejectsOversizedInput()
             print("All KuaiClip tests passed")
         } catch {
             fputs("Test failed: \(error)\n", stderr)
             exit(1)
+        }
+    }
+
+    private static func textPolishRejectsOversizedInput() async throws {
+        let oversized = String(repeating: "a", count: TextPolishService.maximumCharacterCount + 1)
+        do {
+            _ = try await TextPolishService.polish(oversized, using: .openAIMini)
+            throw TestFailure.failed("oversized polish request should be rejected")
+        } catch TextPolishError.textTooLong(let limit) {
+            try expect(limit == TextPolishService.maximumCharacterCount, "polish limit should be reported")
+        } catch {
+            throw TestFailure.failed("expected textTooLong, got \(error)")
         }
     }
 

@@ -2,6 +2,8 @@ import SwiftUI
 
 /// A single row in the clipboard history list
 struct HistoryRowView: View {
+    private static let thumbnailSize: CGFloat = 44
+
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
     let item: ClipboardItem
@@ -13,6 +15,7 @@ struct HistoryRowView: View {
     let onToggleHide: () -> Void
     let onDelete: () -> Void
     let onTogglePin: () -> Void
+    let onPolish: () -> Void
     let theme: AppTheme
 
     @State private var showTooltip: Bool = false
@@ -27,6 +30,10 @@ struct HistoryRowView: View {
                     theme.accent.opacity(0.8)
                 )
                 .frame(width: 28, alignment: .center)
+
+            if item.contentType == .image, !item.isContentHidden {
+                imageThumbnail
+            }
 
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
@@ -63,6 +70,17 @@ struct HistoryRowView: View {
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
                         .onTapGesture { onToggleHide() }
+                }
+
+                if item.contentType != .image && !item.isContentHidden {
+                    Button { onPolish() } label: {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 10))
+                            .foregroundColor(isSelected ? theme.foreground : theme.accent)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.polishText)
                 }
 
                 if isSelected {
@@ -107,6 +125,33 @@ struct HistoryRowView: View {
         }
         .simultaneousGesture(TapGesture(count: 1).modifiers(.option).onEnded { onOptionTap() })
         .simultaneousGesture(TapGesture(count: 1).modifiers([.option, .shift]).onEnded { onOptionShiftTap() })
+    }
+
+    @ViewBuilder
+    private var imageThumbnail: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(theme.foreground.opacity(0.06))
+
+            if let data = item.imageData, let image = NSImage(data: data) {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Self.thumbnailSize, height: Self.thumbnailSize)
+                    .clipped()
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 17))
+                    .foregroundColor(theme.secondaryForeground.opacity(0.55))
+            }
+        }
+        .frame(width: Self.thumbnailSize, height: Self.thumbnailSize)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(theme.border, lineWidth: 0.5)
+        }
+        .accessibilityHidden(true)
     }
 
     private func scheduleTooltip() {

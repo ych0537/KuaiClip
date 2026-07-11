@@ -11,6 +11,8 @@ swiftc \
   Sources/KuaiClip/Models/ClipboardItem.swift \
   Sources/KuaiClip/Services/HistoryStore.swift \
   Sources/KuaiClip/Services/ClipboardMonitor.swift \
+  Sources/KuaiClip/Services/AIKeychain.swift \
+  Sources/KuaiClip/Services/TextPolishService.swift \
   Tests/KuaiClipTests/TestRunner.swift \
   -o .build/tests/KuaiClip-tests
 

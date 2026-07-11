@@ -28,15 +28,7 @@ final class MenuBarManager: NSObject {
 
         guard let button = statusItem?.button else { return }
 
-        if let image = NSImage(
-            systemSymbolName: "list.clipboard",
-            accessibilityDescription: "KuaiClip"
-         ) {
-            image.isTemplate = true
-            button.image = image
-         } else {
-            button.title = "KuaiClip"
-         }
+        applyIconTheme(to: button)
 
         button.toolTip = "KuaiClip (\(HotkeyManager.shared.hotkeyDescription))"
         button.target = self
@@ -50,6 +42,29 @@ final class MenuBarManager: NSObject {
         statusItem?.menu = makeMenu()
         statusItem?.button?.toolTip = "KuaiClip (\(HotkeyManager.shared.hotkeyDescription))"
         preferencesWindow?.title = L10n.preferencesTitle
+    }
+
+    func refreshIconTheme() {
+        guard let button = statusItem?.button else { return }
+        applyIconTheme(to: button)
+    }
+
+    private func applyIconTheme(to button: NSStatusBarButton) {
+        if let image = AppIconTheme.selected.menuBarImage {
+            image.accessibilityDescription = "KuaiClip"
+            button.title = ""
+            button.image = image
+        } else if let image = NSImage(
+            systemSymbolName: "list.clipboard",
+            accessibilityDescription: "KuaiClip"
+        ) {
+            image.isTemplate = true
+            button.title = ""
+            button.image = image
+        } else {
+            button.image = nil
+            button.title = "KuaiClip"
+        }
     }
 
     private func makeMenu() -> NSMenu {
@@ -182,10 +197,10 @@ final class MenuBarManager: NSObject {
 
         let prefsView = PreferencesView()
         let hostingView = NSHostingView(rootView: prefsView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 460)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 520, height: 520)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 520),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false

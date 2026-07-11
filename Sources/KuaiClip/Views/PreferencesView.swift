@@ -12,6 +12,7 @@ struct PreferencesView: View {
     @AppStorage("hotkey_modifiers") private var hotkeyModifiers: Int = 512 | 256
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appearanceMode") private var appearanceMode: String = "light"
+    @AppStorage(AppIconTheme.defaultsKey) private var appIconTheme: String = AppIconTheme.pandaTyping.rawValue
 
     @State private var historyCount: Int = 0
     @State private var isRecording: Bool = false
@@ -23,9 +24,10 @@ struct PreferencesView: View {
         TabView {
             generalTab.tabItem { Label(L10n.general, systemImage: "gearshape") }
             shortcutsTab.tabItem { Label(L10n.shortcuts, systemImage: "keyboard") }
+            AISettingsView().tabItem { Label(L10n.aiPolish, systemImage: "wand.and.stars") }
             aboutTab.tabItem { Label(L10n.about, systemImage: "info.circle") }
         }
-        .frame(width: 520, height: 460)
+        .frame(width: 520, height: 520)
         .background(theme.background)
         .preferredColorScheme(theme.colorScheme)
         .tint(theme.accent)
@@ -96,6 +98,39 @@ struct PreferencesView: View {
                     .frame(width: 170)
                 } label: {
                     settingLabel(L10n.language, icon: "globe")
+                }
+            }
+
+            Section(L10n.appIcon) {
+                HStack(spacing: 14) {
+                    ForEach(AppIconTheme.allCases) { icon in
+                        Button {
+                            appIconTheme = icon.rawValue
+                            icon.apply()
+                        } label: {
+                            VStack(spacing: 6) {
+                                if let image = icon.appImage {
+                                    Image(nsImage: image)
+                                        .resizable()
+                                        .frame(width: 58, height: 58)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
+                                Text(icon.title)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(
+                                        appIconTheme == icon.rawValue ? theme.accent : theme.border,
+                                        lineWidth: appIconTheme == icon.rawValue ? 2 : 1
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
 

@@ -43,6 +43,9 @@
 - 🚀 **Launch at login** — optional, configurable in Preferences
 - 🌐 **Multi-language** — English / 日本語 interface
 - ↔️ **Remembered popup size** — resize once and the next popup restores that size
+- ✨ **AI workplace polish** — refine Chinese, English, or Japanese email text with OpenAI, Gemini, or DeepSeek
+- 🖼 **Uniform image thumbnails** — preview copied images in consistently sized history rows
+- 🐼 **Selectable app icons** — switch the app and menu bar icon between three monochrome mascots
 
 ### Quick Manual
 
@@ -76,6 +79,16 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 ![A hidden pinned item is masked with dots](docs/images/manual-hidden.png)
 
 > Hidden mode prevents shoulder-surfing in the popup; it is not encryption. Clipboard data is stored locally in macOS `UserDefaults`, so use the clear commands when sensitive history is no longer needed.
+
+#### 4. AI polish: improve workplace messages
+
+1. Open Preferences with `⌘,`, select **AI Polish**, and enter an API key for OpenAI, Gemini, or DeepSeek. Keys are stored in macOS Keychain.
+2. Open the clipboard popup and click the wand button beside a text item. Image items and hidden items do not expose this action.
+3. Choose any model whose provider has a configured key, then click the send button.
+4. KuaiClip detects Chinese, English, or Japanese automatically, preserves the original language and meaning, and returns only the professionally polished text.
+5. Copy the result with the copy button. AI polish accepts up to **20,000 characters** per request; regular clipboard history is not subject to this limit.
+
+> AI polish sends the selected text to the provider you choose and may incur provider API charges. KuaiClip does not send clipboard content automatically.
 
 ### Installation
 
@@ -152,6 +165,7 @@ open KuaiClip.app
 |---------|---------|
 | **General** | Max history items (10–100), Polling interval (0.25–2.0 s), Launch at login, Strip formatting by default, Language (English / 日本語) |
 | **Shortcuts** | Activation mode (Double-tap ⌘ / Custom hotkey with Record button), Shortcut reference |
+| **AI Polish** | OpenAI, Gemini, and DeepSeek API keys stored in macOS Keychain |
 | **About** | App icon, version info |
 
 ### Themes
@@ -197,8 +211,10 @@ Existing `System` and `Gray` preferences are migrated automatically to Light and
 
 ### Privacy
 
-- **100% local**: All clipboard history is stored exclusively in `UserDefaults` on your device.
-- **No network access**: KuaiClip never connects to the internet. No analytics, no telemetry, no phoning home.
+- **Local history**: Clipboard history is stored in `UserDefaults` on your device.
+- **Opt-in AI requests only**: KuaiClip connects to OpenAI, Gemini, or DeepSeek only after you click the polish button. Only the selected text is sent to the selected provider.
+- **Keychain protection**: AI API keys are stored in macOS Keychain, not `UserDefaults`.
+- **No analytics or telemetry**: KuaiClip does not send usage analytics or background clipboard data.
 - **No separate clipboard-content files**: Clipboard content is not written to standalone files; persistent history lives in the app preferences plist.
 - **Hidden content stays hidden**: Pinned items marked as hidden are removed from history immediately after use and never re-added by the clipboard monitor.
 
@@ -209,7 +225,7 @@ This is a repository-level review, not legal advice. Before broad external distr
 | Area | Result | Notes |
 |------|--------|-------|
 | Local data handling | Pass | Clipboard history is stored locally via `UserDefaults`; no database or remote storage is used. |
-| Network access | Pass | No app-side network API usage was found in `Sources/`; there is no analytics or telemetry path. |
+| Network access | User initiated | Network access occurs only for AI polish requests explicitly initiated by the user; there is no analytics or telemetry path. |
 | Permissions | Pass with user consent | Accessibility is only needed for double-tap detection and paste simulation. The fallback shortcut works without it. |
 | Sensitive pinned content | Pass | Hidden pinned content is removed from history after use and is not re-added by the clipboard monitor. |
 | Persistence risk | Review | Text history, including pinned entries, remains in `~/Library/Preferences/com.kuaiclip.clipboard.plist` until cleared. Users should clear sensitive data when needed. |
@@ -260,7 +276,7 @@ Paste simulation also requires **Accessibility** permission (see above). Without
 <details>
 <summary><strong>Theme toggle button doesn't respond</strong></summary>
 
-Make sure you're running the latest version (v1.9.1+). If the issue persists, try:
+Make sure you're running the latest version (v0.2+). If the issue persists, try:
 1. Quit and restart KuaiClip
 2. Delete preferences: `defaults delete com.kuaiclip.clipboard`
 </details>
@@ -321,7 +337,7 @@ All clipboard history is stored in macOS UserDefaults:
 | **Max items** | Configurable (10–100, default 50). Oldest unpinned items are auto-removed |
 | **Pinned items** | Up to 10 and never auto-deleted |
 
-**Privacy**: All data stays on your device. KuaiClip **never** sends clipboard content over the network.
+**Privacy**: History stays on your device. Text is sent over the network only when you explicitly run AI polish with a configured provider.
 
 **To clear all data**:
 - Right-click menu bar icon → Clear All Items, or
@@ -355,6 +371,9 @@ All clipboard history is stored in macOS UserDefaults:
 - 🚀 **ログイン時起動** — 設定からオン/オフ可能
 - 🌐 **多言語対応** — English / 日本語
 - ↔️ **ポップアップサイズ記憶** — 調整した幅と高さを次回表示時に復元
+- ✨ **AIビジネス文章校正** — OpenAI、Gemini、DeepSeekで中国語・英語・日本語のメール文章を自然に校正
+- 🖼 **統一サイズの画像サムネイル** — コピーした画像を履歴内で同じサイズに揃えて表示
+- 🐼 **選べるアプリアイコン** — アプリとメニューバーのアイコンを3種類のモノクロマスコットから選択
 
 ### かんたん操作マニュアル
 
@@ -388,6 +407,16 @@ KuaiClipは、Macでコピーした内容を履歴として覚えるアプリで
 ![非表示にした固定項目は点でマスキングされる](docs/images/manual-hidden.png)
 
 > 非表示は、Popupを見られたときの覗き見を防ぐための表示上のマスキングであり、暗号化ではありません。履歴はmacOSの`UserDefaults`へローカル保存されるため、機密情報が不要になったら消去機能を利用してください。
+
+#### 4. AI文章校正：ビジネスメールを自然に整える
+
+1. `⌘,`で設定を開き、**AI文章校正**からOpenAI、Gemini、DeepSeekのいずれかのAPIキーを入力します。キーはmacOSキーチェーンに保存されます。
+2. クリップボードのPopupを開き、テキスト項目の右側にある魔法の杖ボタンをクリックします。画像と非表示項目には表示されません。
+3. APIキーを設定済みのモデルを選び、送信ボタンをクリックします。
+4. 中国語・英語・日本語を自動判定し、元の言語と意味を維持したまま、自然で丁寧なビジネス文章へ校正します。
+5. 結果はコピーボタンからコピーできます。AI校正は1回につき最大**20,000文字**です。通常のクリップボード履歴にはこの制限はありません。
+
+> AI校正では、選択した文章が指定したAIプロバイダーへ送信され、プロバイダー側のAPI料金が発生する場合があります。KuaiClipが自動的にクリップボード内容を送信することはありません。
 
 ### インストール
 
@@ -464,6 +493,7 @@ open KuaiClip.app
 |------------|------|
 | **一般** | 最大履歴数（10～100）、ポーリング間隔（0.25～2.0秒）、ログイン時起動、デフォルトで書式なし貼り付け、言語（English / 日本語） |
 | **ショートカット** | 起動モード（ダブルタップ⌘ / カスタムホットキー＋録音ボタン）、ショートカット一覧 |
+| **AI文章校正** | macOSキーチェーンに保存するOpenAI、Gemini、DeepSeekのAPIキー |
 | **About** | アプリアイコン、バージョン情報 |
 
 ### テーマ
@@ -509,8 +539,10 @@ open KuaiClip.app
 
 ### プライバシー
 
-- **100% ローカル**: すべてのクリップボード履歴はデバイス上の `UserDefaults` にのみ保存されます。
-- **ネットワーク非接続**: KuaiClip はインターネットに一切接続しません。解析、テレメトリー、外部通信はありません。
+- **履歴はローカル保存**: クリップボード履歴はデバイス上の `UserDefaults` に保存されます。
+- **明示操作時のみAI通信**: AI校正ボタンを押した場合のみ、選択した文章をOpenAI、Gemini、DeepSeekの指定プロバイダーへ送信します。
+- **キーチェーン保護**: AIのAPIキーは`UserDefaults`ではなくmacOSキーチェーンに保存します。
+- **解析・テレメトリーなし**: 利用状況やバックグラウンドのクリップボード内容は送信しません。
 - **クリップボード内容の個別ファイル保存なし**: クリップボード内容は個別ファイルとして保存されず、永続化される履歴はアプリの設定 plist に保存されます。
 - **非表示コンテンツの保護**: 非表示設定されたピン留め項目は使用後すぐに履歴から削除され、クリップボードモニターによって再追加されることもありません。
 
@@ -521,7 +553,7 @@ open KuaiClip.app
 | 項目 | 結果 | メモ |
 |------|------|------|
 | ローカルデータ処理 | 合格 | クリップボード履歴は `UserDefaults` にローカル保存され、データベースやリモート保存は使っていません。 |
-| ネットワークアクセス | 合格 | `Sources/` 内にアプリ側のネットワークAPI利用は見つかっていません。解析・テレメトリー経路もありません。 |
+| ネットワークアクセス | ユーザー操作時のみ | 明示的に実行したAI校正だけが通信します。解析・テレメトリー経路はありません。 |
 | 権限 | ユーザー許可前提で合格 | アクセシビリティ権限はダブルタップ検出と貼り付けシミュレーションにのみ必要です。フォールバックショートカットは権限なしで動作します。 |
 | センシティブなピン留め内容 | 合格 | 非表示のピン留め内容は使用後に履歴から削除され、クリップボード監視でも再追加されません。 |
 | 永続化リスク | 要確認 | テキスト履歴やピン留め項目は、削除するまで `~/Library/Preferences/com.kuaiclip.clipboard.plist` に残ります。必要に応じてユーザーが消去してください。 |
@@ -572,7 +604,7 @@ xattr -dr com.apple.quarantine /Applications/KuaiClip.app
 <details>
 <summary><strong>テーマ切替ボタンが反応しない</strong></summary>
 
-最新バージョン（v1.9.1以降）を使用していることを確認してください。それでも問題が発生する場合：
+最新バージョン（v0.2以降）を使用していることを確認してください。それでも問題が発生する場合：
 1. KuaiClip を終了して再起動
 2. 設定をリセット：`defaults delete com.kuaiclip.clipboard`
 </details>
@@ -620,7 +652,7 @@ open KuaiClip.app
 | **最大件数** | 設定可能（10～100、初期値 50）。古いピン留めなし項目は自動削除 |
 | **ピン留め** | 最大10件、自動削除されません |
 
-**プライバシー**: すべてのデータはお使いのデバイス上にのみ保存されます。KuaiClip がクリップボードの内容をネットワーク経由で送信することは**一切ありません**。
+**プライバシー**: 履歴はデバイス上に保存されます。AI校正を明示的に実行した場合のみ、選択した文章が指定プロバイダーへ送信されます。
 
 **データを消去する方法**:
 - メニューバーアイコンを右クリック → Clear All Items

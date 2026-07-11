@@ -15,6 +15,31 @@ enum L10n {
     static var general: String { text("General", "一般") }
     static var shortcuts: String { text("Shortcuts", "ショートカット") }
     static var about: String { text("About", "情報") }
+    static var aiPolish: String { text("AI Polish", "AI文章校正") }
+    static var aiProviders: String { text("AI Provider API Keys", "AIプロバイダーのAPIキー") }
+    static var saveAPIKeys: String { text("Save API Keys", "APIキーを保存") }
+    static var savedInKeychain: String { text("Saved securely in macOS Keychain", "macOSキーチェーンに安全に保存しました") }
+    static var apiKeyPrivacy: String { text("Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.", "キーはmacOSキーチェーンに保存されます。文章は校正時に選択したプロバイダーにのみ送信されます。") }
+    static var polishText: String { text("Polish for work", "ビジネス文章を校正") }
+    static var professionalPolish: String { text("Professional polish", "ビジネス文章校正") }
+    static var aiModel: String { text("AI model", "AIモデル") }
+    static var configureAIKey: String { text("Add an API key in Preferences → AI Polish first.", "先に設定 → AI文章校正でAPIキーを追加してください。") }
+    static var polishedResultPlaceholder: String { text("The polished result will appear here.", "校正した文章がここに表示されます。") }
+    static var aiKeyMissing: String { text("The API key for this provider is missing.", "このプロバイダーのAPIキーが設定されていません。") }
+    static var aiInvalidResponse: String { text("The AI returned an unreadable response.", "AIから読み取れない応答が返されました。") }
+    static var aiRequestFailed: String { text("The AI request failed.", "AIへのリクエストに失敗しました。") }
+    static func polishTextTooLong(_ limit: Int) -> String {
+        text(
+            "This text is too long to polish. The limit is \(limit.formatted()) characters.",
+            "文章が長すぎます。校正できる上限は\(limit.formatted())文字です。"
+        )
+    }
+    static func characterCount(_ count: Int, limit: Int) -> String {
+        text(
+            "\(count.formatted()) / \(limit.formatted()) characters",
+            "\(count.formatted()) / \(limit.formatted())文字"
+        )
+    }
     static var behavior: String { text("Behavior", "動作") }
     static var data: String { text("Data", "データ") }
     static var maxHistory: String { text("Max history", "最大履歴数") }
@@ -23,6 +48,10 @@ enum L10n {
     static var launchAtLogin: String { text("Launch at login", "ログイン時に起動") }
     static var stripFmt: String { text("Strip formatting by default", "デフォルトで書式なし貼り付け") }
     static var language: String { text("Language", "言語") }
+    static var appIcon: String { text("App & Menu Bar Icon", "アプリとメニューバーのアイコン") }
+    static var pandaTyping: String { text("Typing Panda", "タイピングパンダ") }
+    static var pandaBricks: String { text("Brick Panda", "搬砖パンダ") }
+    static var sealBalloon: String { text("Balloon Seal", "風船アザラシ") }
     static var historyItems: String { text("History items", "履歴項目") }
     static var clearAll: String { text("Clear All History", "すべての履歴を消去") }
     static var popupActivation: String { text("Popup Activation", "ポップアップ起動") }

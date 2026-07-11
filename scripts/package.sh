@@ -4,6 +4,7 @@ set -e
 APP_NAME="KuaiClip"
 BUILD_DIR="${BUILD_DIR:-.build/debug}"
 VERSION="${VERSION:-1.0.0}"
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 if [[ ! "${VERSION}" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
     VERSION="1.0.0"
 fi
@@ -122,8 +123,22 @@ xattr -cr "${APP_DIR}" 2>/dev/null || true
 # Make binary executable
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 
-# Ad-hoc code sign (fixes "damaged" / quarantine issues)
-codesign --force --deep --sign - "${APP_DIR}" 2>/dev/null && echo "✅ Ad-hoc signed" || echo "⚠️  Signing skipped"
+# Sign for distribution when a Developer ID identity is supplied. Keep ad-hoc
+# signing as the default for local development and pull-request builds.
+if [ "${SIGN_IDENTITY}" = "-" ]; then
+    codesign --force --deep --sign - "${APP_DIR}"
+    echo "✅ Ad-hoc signed"
+else
+    codesign \
+        --force \
+        --deep \
+        --options runtime \
+        --timestamp \
+        --sign "${SIGN_IDENTITY}" \
+        "${APP_DIR}"
+    codesign --verify --deep --strict --verbose=2 "${APP_DIR}"
+    echo "✅ Developer ID signed and verified"
+fi
 
 echo ""
 echo "🎉 ${APP_NAME}.app packaged successfully!"
