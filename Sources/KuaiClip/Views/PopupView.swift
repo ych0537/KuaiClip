@@ -195,7 +195,10 @@ struct PopupView: View {
                         onToggleHide: { toggleHideContent(item) },
                         onDelete: { deleteItem(item) },
                         onTogglePin: { togglePinSelected(item) },
-                        onPolish: { polishItem = item },
+                        onPolish: {
+                            UsageMetrics.shared.recordPolishWindowOpened()
+                            polishItem = item
+                        },
                         theme: theme
                     )
                     .id(index)

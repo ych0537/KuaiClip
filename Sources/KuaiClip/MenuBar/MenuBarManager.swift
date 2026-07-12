@@ -125,6 +125,7 @@ final class MenuBarManager: NSObject {
 
     func showPopup() {
         guard !isPopupVisible else { return }
+        UsageMetrics.shared.recordPopupOpened()
         NSLog("[KuaiClip] showPopup called")
 
         let popupView = PopupView(

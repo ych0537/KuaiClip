@@ -52,7 +52,15 @@ enum L10n {
         "Copy pinned item a–j": "复制固定项目 a–j", "Delete selected": "删除所选项目",
         "Pin / unpin": "固定 / 取消固定", "Dismiss": "关闭", "Enable Double-Tap ⌘?": "启用双击 ⌘？",
         "Open System Settings": "打开系统设置", "Use ⇧⌘C (Default)": "使用 ⇧⌘C（默认）",
-        "Open Preferences": "打开设置"
+        "Open Preferences": "打开设置", "Local Usage": "本机使用统计",
+        "Popup opens": "主窗口打开次数", "Polish window opens": "润色窗口打开次数",
+        "Polish runs": "实际润色次数", "Tracking since": "统计开始日期",
+        "Not started yet": "尚未开始", "Copy Usage Data": "复制使用数据",
+        "Reset Usage Data": "重置使用统计", "Usage data copied": "使用数据已复制",
+        "Reset local usage data?": "重置本机使用统计？",
+        "This clears only the local counters. Clipboard history and settings are not affected.": "只会清除本机计数，不影响剪贴板历史和设置。",
+        "Usage counts stay on this Mac and are never uploaded automatically.": "使用次数仅保存在本机，绝不会自动上传。",
+        "Cancel": "取消"
     ]
 
     static var general: String { text("General", "一般") }
@@ -163,6 +171,29 @@ enum L10n {
     static var openSystemSettings: String { text("Open System Settings", "システム設定を開く") }
     static var useFallback: String { text("Use ⇧⌘C (Default)", "⇧⌘C を使用（デフォルト）") }
     static var openPreferences: String { text("Open Preferences", "設定を開く") }
+    static var localUsage: String { text("Local Usage", "このMacでの利用状況") }
+    static var popupOpens: String { text("Popup opens", "ポップアップ表示回数") }
+    static var polishWindowOpens: String { text("Polish window opens", "校正画面の表示回数") }
+    static var polishRuns: String { text("Polish runs", "校正実行回数") }
+    static var trackingSince: String { text("Tracking since", "集計開始日") }
+    static var notStartedYet: String { text("Not started yet", "まだ開始していません") }
+    static var copyUsageData: String { text("Copy Usage Data", "利用データをコピー") }
+    static var resetUsageData: String { text("Reset Usage Data", "利用データをリセット") }
+    static var usageDataCopied: String { text("Usage data copied", "利用データをコピーしました") }
+    static var resetUsageTitle: String { text("Reset local usage data?", "このMacの利用データをリセットしますか？") }
+    static var resetUsageMessage: String {
+        text(
+            "This clears only the local counters. Clipboard history and settings are not affected.",
+            "このMacのカウンターだけを消去します。クリップボード履歴と設定には影響しません。"
+        )
+    }
+    static var usagePrivacy: String {
+        text(
+            "Usage counts stay on this Mac and are never uploaded automatically.",
+            "利用回数はこのMacにのみ保存され、自動送信されることはありません。"
+        )
+    }
+    static var cancel: String { text("Cancel", "キャンセル") }
 
     static func timeAgo(_ interval: TimeInterval, date: Date) -> String {
         if interval < 60 { return text("Just now", "たった今", "刚刚") }

@@ -22,6 +22,9 @@ struct PreferencesView: View {
     @State private var isRecording: Bool = false
     @State private var recordMonitor: Any?
     @State private var selectedTab: SettingsTab = .general
+    @State private var showResetUsageConfirmation = false
+    @State private var usageReportCopied = false
+    @ObservedObject private var usageMetrics = UsageMetrics.shared
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
 
@@ -54,6 +57,15 @@ struct PreferencesView: View {
         .onDisappear { stopRecording() }
         .onChange(of: appLanguage) { _, _ in
             MenuBarManager.shared.refreshLocalization()
+        }
+        .alert(L10n.resetUsageTitle, isPresented: $showResetUsageConfirmation) {
+            Button(L10n.cancel, role: .cancel) {}
+            Button(L10n.resetUsageData, role: .destructive) {
+                usageMetrics.reset()
+                usageReportCopied = false
+            }
+        } message: {
+            Text(L10n.resetUsageMessage)
         }
     }
 
@@ -247,20 +259,79 @@ struct PreferencesView: View {
     }
 
     private var aboutTab: some View {
-        VStack(spacing: 10) {
-            Spacer()
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 72, height: 72)
-            Text("KuaiClip").font(.title2).fontWeight(.semibold)
-            Text(L10n.appDescription).foregroundColor(.secondary)
-            Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")")
-                .font(.caption).foregroundColor(.secondary)
-            Spacer()
+        Form {
+            Section {
+                HStack(spacing: 14) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("KuaiClip").font(.title2).fontWeight(.semibold)
+                        Text(L10n.appDescription).foregroundColor(.secondary)
+                        Text("v\(appVersion)").font(.caption).foregroundColor(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section(L10n.localUsage) {
+                usageRow(L10n.popupOpens, value: usageMetrics.popupOpenCount)
+                usageRow(L10n.polishWindowOpens, value: usageMetrics.polishWindowOpenCount)
+                usageRow(L10n.polishRuns, value: usageMetrics.polishRunCount)
+                LabeledContent(L10n.trackingSince) {
+                    Text(usageStartDate).foregroundColor(.secondary)
+                }
+
+                Text(L10n.usagePrivacy)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                HStack {
+                    Button {
+                        copyUsageReport()
+                    } label: {
+                        Label(L10n.copyUsageData, systemImage: "doc.on.doc")
+                    }
+                    if usageReportCopied {
+                        Label(L10n.usageDataCopied, systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                    Spacer()
+                    Button(L10n.resetUsageData, role: .destructive) {
+                        showResetUsageConfirmation = true
+                    }
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding()
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .background(theme.background)
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    }
+
+    private var usageStartDate: String {
+        guard let date = usageMetrics.trackingStartedAt else { return L10n.notStartedYet }
+        return date.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private func usageRow(_ title: String, value: Int) -> some View {
+        LabeledContent(title) {
+            Text(value.formatted()).monospacedDigit().foregroundColor(.secondary)
+        }
+    }
+
+    private func copyUsageReport() {
+        ClipboardMonitor.shared.setIgnoreNextCopy(true)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(
+            usageMetrics.surveyReport(appVersion: appVersion),
+            forType: .string
+        )
+        usageReportCopied = true
     }
 
     private func settingLabel(_ title: String, detail: String? = nil, icon: String) -> some View {

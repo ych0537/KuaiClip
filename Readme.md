@@ -46,6 +46,7 @@
 - ✨ **AI workplace polish** — refine Chinese, English, or Japanese email text with OpenAI, Gemini, or DeepSeek
 - 🖼 **Uniform image thumbnails** — preview copied images in consistently sized history rows
 - 🐼 **Selectable app icons** — switch the app and menu bar icon between six monochrome mascots
+- 📊 **Private local usage counters** — count popup opens, polish-window opens, and polish runs on this Mac; copy the totals into an optional survey without automatic telemetry
 
 ### Quick Manual
 
@@ -94,21 +95,9 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 
 #### Download (Recommended)
 
-Download the latest `KuaiClip.app` from [GitHub Releases](https://github.com/ych0537/KuaiClip/releases/latest).
+Download `KuaiClip.app.zip` from [GitHub Releases](https://github.com/ych0537/KuaiClip/releases/latest), extract it, move `KuaiClip.app` to `/Applications/`, and launch it.
 
-After downloading, macOS quarantines unsigned apps. Choose one:
-
-**Option A — Right-click Open (once)**
-1. Right-click (or Control-click) `KuaiClip.app` in Finder
-2. Select **Open**
-3. Click **Open** in the dialog
-
-**Option B — Remove quarantine attribute (permanent)**
-```bash
-xattr -dr com.apple.quarantine /path/to/KuaiClip.app
-```
-
-Then move `KuaiClip.app` to `/Applications/` and launch it. The app appears as a clipboard icon (📋) in the menu bar. No dock icon.
+Official release assets are signed with **Developer ID**, notarized by Apple, and include a stapled notarization ticket. Gatekeeper can therefore verify the developer and integrity without requiring users to remove quarantine attributes. KuaiClip appears only in the menu bar and does not show a Dock icon.
 
 #### Build from Source
 
@@ -166,7 +155,11 @@ open KuaiClip.app
 | **General** | Max history items (10–100), Polling interval (0.25–2.0 s), Launch at login, Strip formatting by default, Language (English / 日本語 / 简体中文) |
 | **Shortcuts** | Activation mode (Double-tap ⌘ / Custom hotkey with Record button), Shortcut reference |
 | **AI Polish** | OpenAI, Gemini, and DeepSeek API keys stored in macOS Keychain |
-| **About** | App icon, version info |
+| **About** | App icon, version, local usage totals, copy-for-survey, and reset controls |
+
+![Local usage counters in the About tab](docs/images/preferences-about-usage.png)
+
+Usage counters are stored only in local `UserDefaults`. KuaiClip never uploads them automatically. Copying the report is an explicit user action intended for optional surveys.
 
 ### Themes
 
@@ -214,7 +207,7 @@ Existing `System` and `Gray` preferences are migrated automatically to Light and
 - **Local history**: Clipboard history is stored in `UserDefaults` on your device.
 - **Opt-in AI requests only**: KuaiClip connects to OpenAI, Gemini, or DeepSeek only after you click the polish button. Only the selected text is sent to the selected provider.
 - **Keychain protection**: AI API keys are stored in macOS Keychain, not `UserDefaults`.
-- **No analytics or telemetry**: KuaiClip does not send usage analytics or background clipboard data.
+- **No analytics or telemetry uploads**: Local counters for popup opens and AI-polish use remain on this Mac and are shared only when the user explicitly copies them into a survey. Clipboard data is never included.
 - **No separate clipboard-content files**: Clipboard content is not written to standalone files; persistent history lives in the app preferences plist.
 - **Hidden content stays hidden**: Pinned items marked as hidden are removed from history immediately after use and never re-added by the clipboard monitor.
 
@@ -231,18 +224,14 @@ This is a repository-level review, not legal advice. Before broad external distr
 | Persistence risk | Review | Text history, including pinned entries, remains in `~/Library/Preferences/com.kuaiclip.clipboard.plist` until cleared. Users should clear sensitive data when needed. |
 | Third-party dependencies | Pass | `Package.swift` declares no external package dependencies. |
 | License rights | Pass | MIT license text is included in the repository-level `LICENSE` file. |
-| Distribution trust | Review | The release app is ad-hoc signed, not Developer ID notarized. Users may need the documented Gatekeeper/quarantine steps. |
+| Distribution trust | Pass | Official release assets are Developer ID signed, Apple notarized, stapled, and verified with `codesign`, `stapler`, and Gatekeeper (`spctl`). |
 
 ### Troubleshooting
 
 <details>
 <summary><strong>“KuaiClip.app is damaged and can't be opened”</strong></summary>
 
-This is macOS Gatekeeper blocking the unsigned app. Run:
-```bash
-xattr -dr com.apple.quarantine /Applications/KuaiClip.app
-```
-Or right-click → Open the app once.
+Download the asset again from the official GitHub Release and verify that it was fully extracted before moving it to `/Applications`. Official release assets are notarized; do not disable Gatekeeper or remove quarantine as a routine installation step. If the warning persists, report the release version and downloaded ZIP checksum in a GitHub issue.
 </details>
 
 <details>
@@ -276,7 +265,7 @@ Paste simulation also requires **Accessibility** permission (see above). Without
 <details>
 <summary><strong>Theme toggle button doesn't respond</strong></summary>
 
-Make sure you're running the latest version (v0.4+). If the issue persists, try:
+Make sure you're running the latest version (v0.5+). If the issue persists, try:
 1. Quit and restart KuaiClip
 2. Delete preferences: `defaults delete com.kuaiclip.clipboard`
 </details>
@@ -374,6 +363,7 @@ All clipboard history is stored in macOS UserDefaults:
 - ✨ **AIビジネス文章校正** — OpenAI、Gemini、DeepSeekで中国語・英語・日本語のメール文章を自然に校正
 - 🖼 **統一サイズの画像サムネイル** — コピーした画像を履歴内で同じサイズに揃えて表示
 - 🐼 **選べるアプリアイコン** — アプリとメニューバーのアイコンを6種類のモノクロマスコットから選択
+- 📊 **ローカル利用回数** — Popup表示、校正画面表示、校正実行をこのMacだけで集計。自動送信せず、任意アンケート用に明示的にコピー可能
 
 ### かんたん操作マニュアル
 
@@ -422,21 +412,9 @@ KuaiClipは、Macでコピーした内容を履歴として覚えるアプリで
 
 #### ダウンロード（推奨）
 
-[GitHub Releases](https://github.com/ych0537/KuaiClip/releases/latest) から最新の `KuaiClip.app` をダウンロードしてください。
+[GitHub Releases](https://github.com/ych0537/KuaiClip/releases/latest) から `KuaiClip.app.zip` をダウンロードして展開し、`KuaiClip.app` を `/Applications/` へ移動して起動してください。
 
-ダウンロード後、macOS は未署名アプリを検疫します。以下のいずれかの方法で解除してください：
-
-**方法 A — 右クリックで開く（1回のみ）**
-1. Finder で `KuaiClip.app` を右クリック（または Control クリック）
-2. **開く** を選択
-3. ダイアログで **開く** をクリック
-
-**方法 B — 検疫属性を削除（恒久的）**
-```bash
-xattr -dr com.apple.quarantine /path/to/KuaiClip.app
-```
-
-その後、`KuaiClip.app` を `/Applications/` に移動して起動してください。メニューバーにクリップボードアイコン（📋）が表示されます。Dock アイコンはありません。
+公式Releaseは **Developer ID署名**、Apple notarization、チケットのstapleを完了しています。通常はquarantine属性の手動削除やGatekeeperの無効化は不要です。KuaiClipはメニューバーにのみ表示され、Dockアイコンは表示しません。
 
 #### ソースからビルド
 
@@ -494,7 +472,11 @@ open KuaiClip.app
 | **一般** | 最大履歴数（10～100）、ポーリング間隔（0.25～2.0秒）、ログイン時起動、デフォルトで書式なし貼り付け、言語（English / 日本語 / 简体中文） |
 | **ショートカット** | 起動モード（ダブルタップ⌘ / カスタムホットキー＋録音ボタン）、ショートカット一覧 |
 | **AI文章校正** | macOSキーチェーンに保存するOpenAI、Gemini、DeepSeekのAPIキー |
-| **About** | アプリアイコン、バージョン情報 |
+| **情報** | アプリアイコン、バージョン、ローカル利用回数、アンケート用コピー、リセット |
+
+![情報タブに表示されるローカル利用回数](docs/images/preferences-about-usage.png)
+
+利用回数はこのMacの`UserDefaults`だけに保存され、自動送信されません。アンケートへ共有する場合も、利用者が明示的に「利用データをコピー」を押します。
 
 ### テーマ
 
@@ -542,7 +524,7 @@ open KuaiClip.app
 - **履歴はローカル保存**: クリップボード履歴はデバイス上の `UserDefaults` に保存されます。
 - **明示操作時のみAI通信**: AI校正ボタンを押した場合のみ、選択した文章をOpenAI、Gemini、DeepSeekの指定プロバイダーへ送信します。
 - **キーチェーン保護**: AIのAPIキーは`UserDefaults`ではなくmacOSキーチェーンに保存します。
-- **解析・テレメトリーなし**: 利用状況やバックグラウンドのクリップボード内容は送信しません。
+- **解析・テレメトリーの自動送信なし**: Popup表示回数とAI校正利用回数はこのMacだけに保存され、利用者が任意アンケートへ明示的にコピーした場合のみ共有されます。クリップボード内容は統計に含めません。
 - **クリップボード内容の個別ファイル保存なし**: クリップボード内容は個別ファイルとして保存されず、永続化される履歴はアプリの設定 plist に保存されます。
 - **非表示コンテンツの保護**: 非表示設定されたピン留め項目は使用後すぐに履歴から削除され、クリップボードモニターによって再追加されることもありません。
 
@@ -559,18 +541,14 @@ open KuaiClip.app
 | 永続化リスク | 要確認 | テキスト履歴やピン留め項目は、削除するまで `~/Library/Preferences/com.kuaiclip.clipboard.plist` に残ります。必要に応じてユーザーが消去してください。 |
 | サードパーティ依存 | 合格 | `Package.swift` に外部パッケージ依存はありません。 |
 | ライセンス権利 | 合格 | MIT ライセンス本文をリポジトリ直下の `LICENSE` ファイルに含めています。 |
-| 配布の信頼性 | 要確認 | リリースアプリは ad-hoc 署名で、Developer ID notarization は未実施です。ユーザー側で記載済みのGatekeeper/検疫解除手順が必要になる場合があります。 |
+| 配布の信頼性 | 合格 | 公式ReleaseはDeveloper ID署名、Apple notarization、stapleを完了し、`codesign`、`stapler`、Gatekeeper（`spctl`）で検証します。 |
 
 ### トラブルシューティング
 
 <details>
 <summary><strong>「KuaiClip.appは壊れているため開けません」と表示される</strong></summary>
 
-macOS Gatekeeper が未署名アプリをブロックしています。以下を実行してください：
-```bash
-xattr -dr com.apple.quarantine /Applications/KuaiClip.app
-```
-または、アプリを右クリック → 開く で一度だけ起動してください。
+公式GitHub Releaseからもう一度ダウンロードし、ZIPを完全に展開してから`/Applications`へ移動してください。公式Releaseは公証済みのため、通常のインストールでGatekeeperを無効化したりquarantine属性を削除したりしないでください。警告が続く場合は、ReleaseバージョンとZIPのチェックサムをGitHub Issueへ報告してください。
 </details>
 
 <details>
@@ -604,7 +582,7 @@ xattr -dr com.apple.quarantine /Applications/KuaiClip.app
 <details>
 <summary><strong>テーマ切替ボタンが反応しない</strong></summary>
 
-最新バージョン（v0.4以降）を使用していることを確認してください。それでも問題が発生する場合：
+最新バージョン（v0.5以降）を使用していることを確認してください。それでも問題が発生する場合：
 1. KuaiClip を終了して再起動
 2. 設定をリセット：`defaults delete com.kuaiclip.clipboard`
 </details>
@@ -667,5 +645,101 @@ open KuaiClip.app
 | レビュー・テスト・審査 | Codex + GPT5.5 |
 
 ### ライセンス
+
+[MIT](LICENSE)
+
+---
+
+## 简体中文
+
+### 简介
+
+**KuaiClip** 是一款基于 SwiftUI 与 AppKit 开发的原生 macOS 菜单栏剪贴板管理器，支持搜索、复制、直接粘贴、固定、隐藏、图片预览和 AI 职场文本润色。
+
+- **系统要求**：macOS 14 Sonoma 或更高版本
+- **界面语言**：English / 日本語 / 简体中文
+- **本地存储**：剪贴板历史和使用次数保存在本机 `UserDefaults`
+- **原生实现**：不使用 Electron，无第三方 Swift Package 依赖
+
+### 主要功能
+
+- 即时搜索剪贴板历史，支持键盘与鼠标操作
+- 固定最多 10 个常用项目，并使用 `a`–`j` 独立编号
+- 隐藏固定项目内容，减少屏幕窥视风险
+- 支持文本、RTF、HTML、URL、文件路径和图片
+- 支持复制、直接粘贴以及无格式粘贴
+- 支持浅色与深色主题、六种 App 与菜单栏图标
+- 使用 OpenAI、Gemini 或 DeepSeek 润色中文、英文和日文职场文本
+- 在“关于”页面显示本机累计使用次数，便于用户主动填写问卷
+
+![KuaiClip 0.5 主窗口](docs/images/manual-basic.png)
+
+### 安装
+
+1. 从 [GitHub Releases](https://github.com/ych0537/KuaiClip/releases/latest) 下载 `KuaiClip.app.zip`。
+2. 解压后将 `KuaiClip.app` 移动到 `/Applications/`。
+3. 启动 KuaiClip；它只显示在菜单栏，不显示 Dock 图标。
+
+官方 Release 已完成 Developer ID 签名、Apple 公证和票据 staple，并经过 Gatekeeper 验证。正常安装不需要关闭 Gatekeeper，也不需要手动删除 quarantine 属性。
+
+### 基本操作
+
+| 操作 | 快捷键或方式 |
+|------|--------------|
+| 打开或关闭主窗口 | 双击左侧 `⌘`，或备用快捷键 `⇧⌘C` |
+| 搜索 | 直接在搜索框输入 |
+| 上下选择 | `↑` / `↓` |
+| 复制 | `Enter`、点击、`⌘1–9` 或 `⌘A–J` |
+| 复制并直接粘贴 | `⌥Enter` |
+| 无格式粘贴 | `⌥⇧Enter` |
+| 固定或取消固定 | `⌥P` |
+| 删除所选项目 | `⌥Delete` |
+| 打开设置 | `⌘,` |
+
+左侧 `⌘` 双击检测与直接粘贴需要“辅助功能”权限；没有权限时仍可使用 Carbon 备用快捷键打开窗口，并通过 `Enter` 复制后手动按 `⌘V`。
+
+### AI 润色
+
+1. 打开“设置 → AI 润色”，保存 OpenAI、Gemini 或 DeepSeek API Key。Key 存储在 macOS 钥匙串。
+2. 在剪贴板项目右侧点击魔法棒按钮。
+3. 选择已配置的模型并点击“润色”。每次最多处理 20,000 个字符。
+
+只有用户主动点击“润色”时，所选文本才会发送到相应 AI 服务商；KuaiClip 不会在后台自动上传剪贴板内容。
+
+### 本机使用统计
+
+0.5 版本开始记录以下本机计数：
+
+- 主窗口实际打开次数
+- 润色窗口打开次数
+- 实际发起润色请求次数
+- 统计开始日期
+
+统计结果位于“设置 → 关于”，支持复制为问卷文本或单独重置。
+
+![“关于”页面中的本机使用统计](docs/images/preferences-about-usage.png)
+
+这些计数不会自动上传，不包含剪贴板内容、润色文本、API Key、模型名称或每次使用的具体时间。只有用户主动复制并提交问卷时才会分享。
+
+### 数据与隐私
+
+- 剪贴板历史保存在 `~/Library/Preferences/com.kuaiclip.clipboard.plist`。
+- AI API Key 保存在 macOS 钥匙串，不保存在 `UserDefaults`。
+- 隐藏功能是界面遮挡，不是加密；不再需要敏感内容时请及时清除历史。
+- “清空剪贴板历史”不会清除使用统计；使用统计只能从“关于”页面单独重置。
+- KuaiClip 不包含自动分析或遥测上传通道。
+
+### 从源码构建
+
+```bash
+git clone https://github.com/ych0537/KuaiClip.git
+cd KuaiClip
+bash scripts/test.sh
+swift build -c release
+BUILD_DIR=.build/release VERSION=0.5 bash scripts/package.sh
+open KuaiClip.app
+```
+
+### 许可证
 
 [MIT](LICENSE)

@@ -79,6 +79,7 @@ struct TextPolishView: View {
 
     private func runPolish() {
         guard let selectedModel, !isOverLimit else { return }
+        UsageMetrics.shared.recordPolishRun()
         isLoading = true; errorMessage = nil
         Task {
             do { result = try await TextPolishService.polish(source, using: selectedModel) }

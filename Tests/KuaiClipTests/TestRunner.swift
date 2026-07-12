@@ -18,6 +18,7 @@ struct TestRunner {
             try await MainActor.run {
                 try runHistoryStoreTests()
                 try runLocalizationTests()
+                try runUsageMetricsTests()
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
@@ -59,6 +60,7 @@ struct TestRunner {
             try expect(L10n.clearUnpinned == "Clear Unpinned Items", "English menu text")
             try expect(L10n.pinLimitTitle == "Pinned item limit reached", "English pin limit title")
             try expect(L10n.timeAgo(30, date: Date()) == "Just now", "English relative time")
+            try expect(L10n.localUsage == "Local Usage", "English local usage title")
         }
 
         try withLanguage("ja") {
@@ -66,6 +68,7 @@ struct TestRunner {
             try expect(L10n.clearUnpinned == "未固定項目を消去", "Japanese menu text")
             try expect(L10n.pinLimitTitle == "固定項目の上限", "Japanese pin limit title")
             try expect(L10n.timeAgo(30, date: Date()) == "たった今", "Japanese relative time")
+            try expect(L10n.localUsage == "このMacでの利用状況", "Japanese local usage title")
         }
 
         try withLanguage("zh") {
@@ -74,6 +77,7 @@ struct TestRunner {
             try expect(L10n.pinLimitTitle == "已达到固定项目上限", "Chinese pin limit title")
             try expect(L10n.timeAgo(30, date: Date()) == "刚刚", "Chinese relative time")
             try expect(L10n.polishAction == "润色", "Chinese polish action")
+            try expect(L10n.localUsage == "本机使用统计", "Chinese local usage title")
         }
 
         let item = ClipboardItem(content: "")
@@ -86,6 +90,40 @@ struct TestRunner {
         try withLanguage("zh") {
             try expect(item.preview == "（空）", "Chinese empty preview")
         }
+    }
+
+    @MainActor
+    private static func runUsageMetricsTests() throws {
+        let suiteName = "KuaiClipTests.UsageMetrics.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            throw TestFailure.failed("expected isolated usage metrics defaults")
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let metrics = UsageMetrics(defaults: defaults)
+        try expect(metrics.snapshot == UsageMetricsSnapshot(
+            popupOpenCount: 0,
+            polishWindowOpenCount: 0,
+            polishRunCount: 0,
+            trackingStartedAt: nil
+        ), "usage metrics should start empty")
+
+        metrics.recordPopupOpened()
+        metrics.recordPopupOpened()
+        metrics.recordPolishWindowOpened()
+        metrics.recordPolishRun()
+
+        try expect(metrics.popupOpenCount == 2, "popup opens should be counted")
+        try expect(metrics.polishWindowOpenCount == 1, "polish windows should be counted")
+        try expect(metrics.polishRunCount == 1, "polish runs should be counted")
+        try expect(metrics.trackingStartedAt != nil, "first use should set tracking date")
+
+        let reloaded = UsageMetrics(defaults: defaults)
+        try expect(reloaded.snapshot == metrics.snapshot, "usage metrics should persist")
+        try expect(reloaded.surveyReport(appVersion: "0.5").contains("Popup opens: 2"), "survey report should contain counters")
+
+        reloaded.reset()
+        try expect(reloaded.popupOpenCount == 0 && reloaded.trackingStartedAt == nil, "reset should clear only usage metrics")
     }
 
     @MainActor

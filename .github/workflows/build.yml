@@ -1,4 +1,4 @@
-name: Build & Release
+name: Build & Test
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -36,24 +36,8 @@ jobs:
           ls -la KuaiClip.app/Contents/MacOS/KuaiClip
           file KuaiClip.app/Contents/MacOS/KuaiClip
 
-      - name: Create release zip
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          mkdir -p release
-          cp -R KuaiClip.app release/
-          cd release
-          zip -r KuaiClip.app.zip KuaiClip.app
-          ls -lh KuaiClip.app.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: KuaiClip-app
+          name: KuaiClip-unsigned-build
           path: KuaiClip.app
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/KuaiClip.app.zip
-          generate_release_notes: true
