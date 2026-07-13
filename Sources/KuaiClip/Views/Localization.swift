@@ -27,6 +27,8 @@ enum L10n {
         "The API key for this provider is missing.": "尚未设置此服务商的 API Key。",
         "The AI returned an unreadable response.": "AI 返回了无法读取的结果。",
         "The AI request failed.": "AI 请求失败。", "Behavior": "行为", "Data": "数据",
+        "Azure endpoint": "Azure Endpoint", "Deployment name": "部署名称",
+        "API version": "API 版本", "The Azure OpenAI configuration is invalid.": "Azure OpenAI 配置无效。",
         "Max history": "最大历史记录", "Unpinned items kept (10–100)": "保留的未固定项目（10–100）",
         "Clipboard polling": "剪贴板检查间隔", "Launch at login": "登录时启动",
         "Strip formatting by default": "默认移除格式", "Language": "语言",
@@ -83,6 +85,11 @@ enum L10n {
     static var aiKeyMissing: String { text("The API key for this provider is missing.", "このプロバイダーのAPIキーが設定されていません。") }
     static var aiInvalidResponse: String { text("The AI returned an unreadable response.", "AIから読み取れない応答が返されました。") }
     static var aiRequestFailed: String { text("The AI request failed.", "AIへのリクエストに失敗しました。") }
+    static var azureEndpoint: String { text("Azure endpoint", "Azureエンドポイント", "Azure Endpoint") }
+    static var azureDeployment: String { text("Deployment name", "デプロイ名", "部署名称") }
+    static var azureAPIVersion: String { text("API version", "APIバージョン", "API 版本") }
+    static var azureAPIKeyPlaceholder: String { "Azure API Key" }
+    static var azureConfigurationInvalid: String { text("The Azure OpenAI configuration is invalid.", "Azure OpenAIの設定が無効です。", "Azure OpenAI 配置无效。") }
     static func polishTextTooLong(_ limit: Int) -> String {
         text(
             "This text is too long to polish. The limit is \(limit.formatted()) characters.",

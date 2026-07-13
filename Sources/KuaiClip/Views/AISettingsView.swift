@@ -3,6 +3,7 @@ import SwiftUI
 struct AISettingsView: View {
     private enum Provider: String, CaseIterable, Identifiable {
         case openAI = "openai"
+        case azureOpenAI = "azure-openai"
         case gemini
         case deepSeek = "deepseek"
 
@@ -10,6 +11,7 @@ struct AISettingsView: View {
         var title: String {
             switch self {
             case .openAI: return "OpenAI"
+            case .azureOpenAI: return "Azure OpenAI"
             case .gemini: return "Gemini"
             case .deepSeek: return "DeepSeek"
             }
@@ -17,6 +19,7 @@ struct AISettingsView: View {
         var placeholder: String {
             switch self {
             case .openAI: return "sk-proj-…"
+            case .azureOpenAI: return L10n.azureAPIKeyPlaceholder
             case .gemini: return "AIza…"
             case .deepSeek: return "sk-…"
             }
@@ -27,6 +30,9 @@ struct AISettingsView: View {
     @AppStorage("aiSettingsProvider") private var providerValue = Provider.openAI.rawValue
     @State private var apiKey = ""
     @State private var saved = false
+    @AppStorage("azureOpenAIEndpoint") private var azureEndpoint = ""
+    @AppStorage("azureOpenAIDeployment") private var azureDeployment = ""
+    @AppStorage("azureOpenAIAPIVersion") private var azureAPIVersion = "2024-10-21"
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
     private var provider: Provider { Provider(rawValue: providerValue) ?? .openAI }
@@ -49,6 +55,21 @@ struct AISettingsView: View {
                     SecureField(provider.placeholder, text: $apiKey)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 300)
+                }
+
+                if provider == .azureOpenAI {
+                    LabeledContent(L10n.azureEndpoint) {
+                        TextField("https://example.openai.azure.com", text: $azureEndpoint)
+                            .textFieldStyle(.roundedBorder).frame(width: 300)
+                    }
+                    LabeledContent(L10n.azureDeployment) {
+                        TextField("gpt-4o", text: $azureDeployment)
+                            .textFieldStyle(.roundedBorder).frame(width: 300)
+                    }
+                    LabeledContent(L10n.azureAPIVersion) {
+                        TextField("2024-10-21", text: $azureAPIVersion)
+                            .textFieldStyle(.roundedBorder).frame(width: 300)
+                    }
                 }
             }
 
