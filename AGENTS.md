@@ -291,7 +291,7 @@ swift build -c release
 Release ビルド済みのバイナリから `.app` を作る場合:
 
 ```bash
-BUILD_DIR=.build/release VERSION=1.11.1 bash scripts/package.sh
+BUILD_DIR=.build/release VERSION=0.6 bash scripts/package.sh
 ```
 
 `scripts/package.sh` は以下を行います。
@@ -393,7 +393,7 @@ swift build
 swift build -c release
 
 # App パッケージ
-BUILD_DIR=.build/release VERSION=1.11.1 bash scripts/package.sh
+BUILD_DIR=.build/release VERSION=0.6 bash scripts/package.sh
 
 # 署名確認
 codesign --verify --deep --strict KuaiClip.app

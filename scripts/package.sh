@@ -25,6 +25,19 @@ mkdir -p "${RESOURCES_DIR}"
 # Copy the binary
 cp "${BUILD_DIR}/${APP_NAME}" "${MACOS_DIR}/"
 
+# Keep SwiftPM resources in the conventional signed-app location. Application
+# code resolves this bundle there, while local `swift run` continues to use
+# Bundle.module's build-directory fallback.
+RESOURCE_BUNDLE_NAME="${APP_NAME}_${APP_NAME}.bundle"
+RESOURCE_BUNDLE="${BUILD_DIR}/${RESOURCE_BUNDLE_NAME}"
+if [ ! -d "${RESOURCE_BUNDLE}" ]; then
+    echo "❌ Missing SwiftPM resource bundle: ${RESOURCE_BUNDLE}" >&2
+    echo "   Build the executable before packaging (for example: swift build -c release)." >&2
+    exit 1
+fi
+cp -R "${RESOURCE_BUNDLE}" "${RESOURCES_DIR}/${RESOURCE_BUNDLE_NAME}"
+echo "✅ Copied ${RESOURCE_BUNDLE_NAME}"
+
 # Generate Info.plist
 cat > "${CONTENTS_DIR}/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>

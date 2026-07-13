@@ -45,12 +45,23 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
     }
 
     private func image(named name: String) -> NSImage? {
-        let url = Bundle.module.url(
+        let bundle = Self.resourceBundle
+        let url = bundle.url(
             forResource: name,
             withExtension: "png",
             subdirectory: "IconThemes"
-        ) ?? Bundle.module.url(forResource: name, withExtension: "png")
+        ) ?? bundle.url(forResource: name, withExtension: "png")
         guard let url else { return nil }
         return NSImage(contentsOf: url)
+    }
+
+    private static var resourceBundle: Bundle {
+        if let resourcesURL = Bundle.main.resourceURL,
+           let appBundle = Bundle(
+               url: resourcesURL.appendingPathComponent("KuaiClip_KuaiClip.bundle")
+           ) {
+            return appBundle
+        }
+        return Bundle.module
     }
 }
