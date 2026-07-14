@@ -67,22 +67,13 @@ struct TextPolishService {
     private static func callAzureOpenAI(_ input: String, key: String) async throws -> String {
         let endpoint = azureSetting("azureOpenAIEndpoint")
         let deployment = azureSetting("azureOpenAIDeployment")
-        let apiVersion = azureSetting("azureOpenAIAPIVersion").isEmpty
-            ? "2024-10-21" : azureSetting("azureOpenAIAPIVersion")
-        guard var components = URLComponents(
-            string: endpoint.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                + "/openai/deployments/" + deployment.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!
-                + "/chat/completions"
-        ) else { throw TextPolishError.invalidResponse(L10n.azureConfigurationInvalid) }
-        components.queryItems = [URLQueryItem(name: "api-version", value: apiVersion)]
-        guard let url = components.url else {
-            throw TextPolishError.invalidResponse(L10n.azureConfigurationInvalid)
-        }
+        let url = try azureChatCompletionsURL(endpoint: endpoint, deployment: deployment)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(key, forHTTPHeaderField: "api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": deployment,
             "messages": [["role": "user", "content": input]],
         ])
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -94,6 +85,22 @@ struct TextPolishService {
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         throw TextPolishError.invalidResponse(L10n.aiInvalidResponse)
+    }
+
+    static func azureChatCompletionsURL(endpoint: String, deployment: String) throws -> URL {
+        let trimmedEndpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !deployment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw TextPolishError.invalidResponse(L10n.azureConfigurationInvalid)
+        }
+        let base = trimmedEndpoint.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let urlString = base.hasSuffix("/chat/completions") ? base : base + "/chat/completions"
+        guard let components = URLComponents(string: urlString),
+              let scheme = components.scheme, ["http", "https"].contains(scheme),
+              components.host != nil,
+              let url = components.url else {
+            throw TextPolishError.invalidResponse(L10n.azureConfigurationInvalid)
+        }
+        return url
     }
 
     private static func azureSetting(_ key: String) -> String {

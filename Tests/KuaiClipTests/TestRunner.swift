@@ -22,6 +22,7 @@ struct TestRunner {
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
+            try azureV1EndpointBuildsChatCompletionsURL()
             try expect(AIModel.deepSeekFlash.displayName == "deepseek-v4-flash", "AI model picker should show only the model ID")
             print("All KuaiClip tests passed")
         } catch {
@@ -40,6 +41,17 @@ struct TestRunner {
         } catch {
             throw TestFailure.failed("expected textTooLong, got \(error)")
         }
+    }
+
+    private static func azureV1EndpointBuildsChatCompletionsURL() throws {
+        let url = try TextPolishService.azureChatCompletionsURL(
+            endpoint: "https://example.internal/openai/v1/",
+            deployment: "company-gpt"
+        )
+        try expect(
+            url.absoluteString == "https://example.internal/openai/v1/chat/completions",
+            "Azure v1 endpoint should append chat/completions without a legacy deployments path"
+        )
     }
 
     @MainActor

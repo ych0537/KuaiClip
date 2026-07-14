@@ -5,10 +5,15 @@ APP_NAME="KuaiClip"
 BUILD_DIR="${BUILD_DIR:-.build/debug}"
 VERSION="${VERSION:-1.0.0}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+INSTALLER_SIGN_IDENTITY="${INSTALLER_SIGN_IDENTITY:-}"
+OUTPUT_DIR="${OUTPUT_DIR:-release}"
 if [[ ! "${VERSION}" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
     VERSION="1.0.0"
 fi
-APP_DIR="${APP_NAME}.app"
+mkdir -p "${OUTPUT_DIR}"
+APP_DIR="${OUTPUT_DIR}/${APP_NAME}.app"
+ZIP_PATH="${OUTPUT_DIR}/${APP_NAME}.app.zip"
+PKG_PATH="${OUTPUT_DIR}/${APP_NAME}.pkg"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
@@ -17,6 +22,7 @@ echo "📦 Packaging ${APP_NAME}.app..."
 
 # Clean up any existing app
 rm -rf "${APP_DIR}"
+rm -f "${ZIP_PATH}" "${PKG_PATH}"
 
 # Create directory structure
 mkdir -p "${MACOS_DIR}"
@@ -153,7 +159,32 @@ else
     echo "✅ Developer ID signed and verified"
 fi
 
+# Create the drag-and-drop archive and an installer package. Installer signing
+# is optional for local builds and can be supplied for distribution builds.
+xattr -cr "${APP_DIR}" 2>/dev/null || true
+codesign --verify --deep --strict "${APP_DIR}"
+ditto -c -k --keepParent --norsrc "${APP_DIR}" "${ZIP_PATH}"
+echo "✅ Created ${ZIP_PATH}"
+
+if [ -n "${INSTALLER_SIGN_IDENTITY}" ]; then
+    COPYFILE_DISABLE=1 productbuild \
+        --sign "${INSTALLER_SIGN_IDENTITY}" \
+        --component "${APP_DIR}" /Applications \
+        "${PKG_PATH}"
+else
+    COPYFILE_DISABLE=1 productbuild --component "${APP_DIR}" /Applications "${PKG_PATH}"
+fi
+echo "✅ Created ${PKG_PATH}"
+
+# Some productbuild versions can leave an AppleDouble-only mirror beside the
+# working directory. Never keep package artifacts outside OUTPUT_DIR.
+if [ "${APP_DIR}" != "${APP_NAME}.app" ]; then
+    rm -rf "${APP_NAME}.app"
+fi
+
 echo ""
 echo "🎉 ${APP_NAME}.app packaged successfully!"
-echo "   Location: $(pwd)/${APP_DIR}"
+echo "   App: $(pwd)/${APP_DIR}"
+echo "   ZIP: $(pwd)/${ZIP_PATH}"
+echo "   PKG: $(pwd)/${PKG_PATH}"
 ls -la "${APP_DIR}/Contents/MacOS/${APP_NAME}"

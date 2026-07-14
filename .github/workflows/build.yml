@@ -28,16 +28,20 @@ jobs:
       - name: Build release
         run: swift build -c release
 
-      - name: Package .app
+      - name: Package app, zip, and pkg
         run: BUILD_DIR=.build/release VERSION="${GITHUB_REF_NAME#v}" bash scripts/package.sh
 
-      - name: Verify .app exists
+      - name: Verify packages exist
         run: |
-          ls -la KuaiClip.app/Contents/MacOS/KuaiClip
-          file KuaiClip.app/Contents/MacOS/KuaiClip
+          ls -la release/KuaiClip.app/Contents/MacOS/KuaiClip
+          file release/KuaiClip.app/Contents/MacOS/KuaiClip
+          test -f release/KuaiClip.app.zip
+          test -f release/KuaiClip.pkg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: KuaiClip-unsigned-build
-          path: KuaiClip.app
+          path: |
+            release/KuaiClip.app.zip
+            release/KuaiClip.pkg

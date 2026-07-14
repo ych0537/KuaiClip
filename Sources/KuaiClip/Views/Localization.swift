@@ -19,6 +19,7 @@ enum L10n {
         "General": "通用", "Shortcuts": "快捷键", "About": "关于",
         "AI Polish": "AI 润色", "AI Provider API Keys": "AI 服务商 API Key",
         "AI provider": "AI 服务商", "API key": "API Key", "Save API Key": "保存 API Key",
+        "Delete API Key": "删除 API Key", "API key deleted from macOS Keychain": "已从 macOS 钥匙串删除 API Key",
         "Save API Keys": "保存 API Key", "Saved securely in macOS Keychain": "已安全保存到 macOS 钥匙串",
         "Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.": "Key 仅保存在 macOS 钥匙串。只有主动润色时，文本才会发送给所选服务商。",
         "Polish for work": "职场润色", "Professional polish": "职场润色", "AI model": "AI 模型",
@@ -28,7 +29,7 @@ enum L10n {
         "The AI returned an unreadable response.": "AI 返回了无法读取的结果。",
         "The AI request failed.": "AI 请求失败。", "Behavior": "行为", "Data": "数据",
         "Azure endpoint": "Azure Endpoint", "Deployment name": "部署名称",
-        "API version": "API 版本", "The Azure OpenAI configuration is invalid.": "Azure OpenAI 配置无效。",
+        "The Azure OpenAI configuration is invalid.": "Azure OpenAI 配置无效。",
         "Max history": "最大历史记录", "Unpinned items kept (10–100)": "保留的未固定项目（10–100）",
         "Clipboard polling": "剪贴板检查间隔", "Launch at login": "登录时启动",
         "Strip formatting by default": "默认移除格式", "Language": "语言",
@@ -73,8 +74,10 @@ enum L10n {
     static var aiProvider: String { text("AI provider", "AIプロバイダー") }
     static var apiKey: String { text("API key", "APIキー") }
     static var saveAPIKey: String { text("Save API Key", "APIキーを保存") }
+    static var deleteAPIKey: String { text("Delete API Key", "APIキーを削除") }
     static var saveAPIKeys: String { text("Save API Keys", "APIキーを保存") }
     static var savedInKeychain: String { text("Saved securely in macOS Keychain", "macOSキーチェーンに安全に保存しました") }
+    static var deletedFromKeychain: String { text("API key deleted from macOS Keychain", "macOSキーチェーンからAPIキーを削除しました") }
     static var apiKeyPrivacy: String { text("Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.", "キーはmacOSキーチェーンに保存されます。文章は校正時に選択したプロバイダーにのみ送信されます。") }
     static var polishText: String { text("Polish for work", "ビジネス文章を校正") }
     static var professionalPolish: String { text("Professional polish", "ビジネス文章校正") }
@@ -87,7 +90,6 @@ enum L10n {
     static var aiRequestFailed: String { text("The AI request failed.", "AIへのリクエストに失敗しました。") }
     static var azureEndpoint: String { text("Azure endpoint", "Azureエンドポイント", "Azure Endpoint") }
     static var azureDeployment: String { text("Deployment name", "デプロイ名", "部署名称") }
-    static var azureAPIVersion: String { text("API version", "APIバージョン", "API 版本") }
     static var azureAPIKeyPlaceholder: String { "Azure API Key" }
     static var azureConfigurationInvalid: String { text("The Azure OpenAI configuration is invalid.", "Azure OpenAIの設定が無効です。", "Azure OpenAI 配置无效。") }
     static func polishTextTooLong(_ limit: Int) -> String {

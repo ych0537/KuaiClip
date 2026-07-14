@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct AISettingsView: View {
+    private enum KeyOperationStatus {
+        case saved, deleted
+    }
+
     private enum Provider: String, CaseIterable, Identifiable {
         case openAI = "openai"
         case azureOpenAI = "azure-openai"
@@ -29,10 +33,10 @@ struct AISettingsView: View {
     @AppStorage("appearanceMode") private var appearanceMode = "light"
     @AppStorage("aiSettingsProvider") private var providerValue = Provider.openAI.rawValue
     @State private var apiKey = ""
-    @State private var saved = false
+    @State private var hasStoredKey = false
+    @State private var keyOperationStatus: KeyOperationStatus?
     @AppStorage("azureOpenAIEndpoint") private var azureEndpoint = ""
     @AppStorage("azureOpenAIDeployment") private var azureDeployment = ""
-    @AppStorage("azureOpenAIAPIVersion") private var azureAPIVersion = "2024-10-21"
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
     private var provider: Provider { Provider(rawValue: providerValue) ?? .openAI }
@@ -40,7 +44,7 @@ struct AISettingsView: View {
     var body: some View {
         Form {
             Section(L10n.aiProviders) {
-                LabeledContent(L10n.aiProvider) {
+                settingsRow(L10n.aiProvider) {
                     Picker("", selection: $providerValue) {
                         ForEach(Provider.allCases) { provider in
                             Text(provider.title).tag(provider.rawValue)
@@ -48,42 +52,58 @@ struct AISettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 220)
+                    .fixedSize()
                 }
 
-                LabeledContent(L10n.apiKey) {
-                    SecureField(provider.placeholder, text: $apiKey)
+                settingsRow(L10n.apiKey) {
+                    SecureField("", text: $apiKey, prompt: Text(provider.placeholder))
+                        .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 300)
                 }
 
                 if provider == .azureOpenAI {
-                    LabeledContent(L10n.azureEndpoint) {
-                        TextField("https://example.openai.azure.com", text: $azureEndpoint)
-                            .textFieldStyle(.roundedBorder).frame(width: 300)
+                    settingsRow(L10n.azureEndpoint) {
+                        TextField(
+                            "",
+                            text: $azureEndpoint,
+                            prompt: Text("https://example.openai.azure.com/openai/v1/")
+                        )
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
                     }
-                    LabeledContent(L10n.azureDeployment) {
-                        TextField("gpt-4o", text: $azureDeployment)
-                            .textFieldStyle(.roundedBorder).frame(width: 300)
-                    }
-                    LabeledContent(L10n.azureAPIVersion) {
-                        TextField("2024-10-21", text: $azureAPIVersion)
-                            .textFieldStyle(.roundedBorder).frame(width: 300)
+                    settingsRow(L10n.azureDeployment) {
+                        TextField("", text: $azureDeployment, prompt: Text("gpt-4o"))
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
                     }
                 }
             }
 
             Section {
-                Button(L10n.saveAPIKey) {
-                    AIKeychain.save(
-                        apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                        account: provider.rawValue
-                    )
-                    saved = true
+                HStack(spacing: 12) {
+                    Button(L10n.saveAPIKey) {
+                        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                        AIKeychain.save(trimmedKey, account: provider.rawValue)
+                        apiKey = trimmedKey
+                        hasStoredKey = true
+                        keyOperationStatus = .saved
+                    }
+                    .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(L10n.deleteAPIKey, role: .destructive) {
+                        AIKeychain.delete(provider.rawValue)
+                        apiKey = ""
+                        hasStoredKey = false
+                        keyOperationStatus = .deleted
+                    }
+                    .disabled(!hasStoredKey)
+                    Spacer()
                 }
-                if saved {
+                if keyOperationStatus == .saved {
                     Label(L10n.savedInKeychain, systemImage: "checkmark.shield.fill")
                         .foregroundStyle(.green)
+                } else if keyOperationStatus == .deleted {
+                    Label(L10n.deletedFromKeychain, systemImage: "trash.fill")
+                        .foregroundStyle(.secondary)
                 }
                 Text(L10n.apiKeyPrivacy).font(.caption).foregroundStyle(.secondary)
             }
@@ -95,8 +115,21 @@ struct AISettingsView: View {
         .onChange(of: providerValue) { _, _ in loadKey() }
     }
 
+    private func settingsRow<Content: View>(
+        _ label: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(spacing: 16) {
+            Text(label)
+                .frame(width: 145, alignment: .leading)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private func loadKey() {
         apiKey = AIKeychain.read(provider.rawValue)
-        saved = false
+        hasStoredKey = !apiKey.isEmpty
+        keyOperationStatus = nil
     }
 }
