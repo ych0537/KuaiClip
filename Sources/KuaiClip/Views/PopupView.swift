@@ -33,22 +33,19 @@ struct PopupView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
-            Divider()
-
             if filteredItems.isEmpty {
                 emptyState
             } else {
                 itemList
             }
 
-            Divider()
             statusBar
         }
         .frame(minWidth: 340, minHeight: 400)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(theme.background)
+                .fill(theme.panelBackground)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 12)
@@ -118,7 +115,12 @@ struct PopupView: View {
             Spacer()
             themeToggle
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(theme.groupBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10).stroke(theme.border, lineWidth: 0.5)
+        }
+        .padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 4)
     }
 
     private var themeToggle: some View {
@@ -126,9 +128,9 @@ struct PopupView: View {
             NSLog("[KuaiClip] themeToggle tapped, current: \(appearanceMode)")
             toggleAppearance()
         } label: {
-            Image(systemName: appearanceIcon)
+            Image(systemName: "paintpalette.fill")
                 .font(theme.uiFont(size: 14))
-                .foregroundColor(theme.secondaryForeground)
+                .foregroundColor(theme.accent)
                 .frame(width: 24, height: 24)
         }
         .buttonStyle(.plain)
@@ -136,14 +138,9 @@ struct PopupView: View {
         .help(L10n.themeHelp)
     }
 
-    private var appearanceIcon: String {
-        theme == .dark ? "moon.fill" : "sun.max.fill"
-    }
-
-
     private func toggleAppearance() {
         let old = appearanceMode
-        appearanceMode = theme == .dark ? AppTheme.light.rawValue : AppTheme.dark.rawValue
+        appearanceMode = theme.next.rawValue
         NSLog("[KuaiClip] appearanceMode toggled: \(old) → \(appearanceMode)")
         applyAppearance()
     }
@@ -182,8 +179,8 @@ struct PopupView: View {
                     // Divider between pinned and unpinned items
                     if index == pinnedCount, pinnedCount > 0, pinnedCount < filteredItems.count {
                         Divider()
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
+                            .listRowInsets(EdgeInsets())
+                            .listRowSeparator(.hidden)
                     }
                     HistoryRowView(
                         item: item,
@@ -199,10 +196,11 @@ struct PopupView: View {
                             UsageMetrics.shared.recordPolishWindowOpened()
                             polishItem = item
                         },
+                        onFormatJSON: { formatJSONAndCopy(item) },
                         theme: theme
                     )
                     .id(index)
-                    .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 2))
                     .listRowSeparator(.hidden)
                     .onHover { hovering in
                         if hovering && !isMouseScrolling {
@@ -213,7 +211,12 @@ struct PopupView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(theme.background)
+            .background(theme.groupBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12).stroke(theme.border, lineWidth: 0.5)
+            }
+            .padding(.horizontal, 10)
             .onChange(of: keyboardScrollRequest) { _, _ in
                 withAnimation {
                     proxy.scrollTo(selectedIndex, anchor: .center)
@@ -257,11 +260,20 @@ struct PopupView: View {
             .fixedSize()
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .padding(.vertical, 7)
     }
 
     private func toggleHideContent(_ item: ClipboardItem) {
         HistoryStore.shared.setContentHidden(item, hidden: !item.isContentHidden)
+    }
+
+    private func formatJSONAndCopy(_ item: ClipboardItem) {
+        guard let formatted = JSONTextFormatter.formatted(item.content) else { return }
+        HistoryStore.shared.addItem(formatted)
+        if let formattedItem = HistoryStore.shared.items.first(where: { $0.content == formatted }) {
+            PasteService.shared.copyToClipboard(formattedItem)
+        }
+        onDismiss()
     }
 
     private func deleteItem(_ item: ClipboardItem) {

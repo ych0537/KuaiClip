@@ -3,7 +3,7 @@ import SwiftUI
 
 /// A single row in the clipboard history list
 struct HistoryRowView: View {
-    private static let thumbnailSize: CGFloat = 88
+    private static let thumbnailSize: CGFloat = 76
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
@@ -17,6 +17,7 @@ struct HistoryRowView: View {
     let onDelete: () -> Void
     let onTogglePin: () -> Void
     let onPolish: () -> Void
+    let onFormatJSON: () -> Void
     let theme: AppTheme
 
     @State private var showTooltip: Bool = false
@@ -24,19 +25,13 @@ struct HistoryRowView: View {
     @State private var isTextTruncated: Bool = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .center, spacing: 4) {
             Text(shortcutLabel)
-                .font(theme.codeFont(size: shortcutLabel.count >= 3 ? 10 : 12, weight: .bold))
-                .foregroundColor(isSelected ? .white : theme.accent)
-                .frame(width: 26, height: 26)
-                .background {
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(isSelected ? theme.accent : theme.accent.opacity(0.10))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(theme.accent.opacity(isSelected ? 0 : 0.22), lineWidth: 0.5)
-                }
+                .font(theme.uiFont(size: 12, weight: .medium))
+                .foregroundColor(theme.secondaryForeground)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 24, alignment: .leading)
 
             if item.contentType == .image, !item.isContentHidden {
                 imageThumbnail
@@ -86,7 +81,7 @@ struct HistoryRowView: View {
                         .onTapGesture { onToggleHide() }
                 }
 
-                if item.contentType != .image && !item.isContentHidden {
+                if shouldShowPolishButton {
                     Button { onPolish() } label: {
                         Image(systemName: "wand.and.stars")
                             .font(.system(size: 10))
@@ -95,6 +90,17 @@ struct HistoryRowView: View {
                     }
                     .buttonStyle(.plain)
                     .help(L10n.polishText)
+                }
+
+                if isJSON, !item.isContentHidden {
+                    Button { onFormatJSON() } label: {
+                        Image(systemName: "curlybraces")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(isSelected ? theme.foreground : theme.accent)
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.formatJSONAndCopy)
                 }
 
                 if isSelected {
@@ -106,10 +112,10 @@ struct HistoryRowView: View {
                 }
             }
         }
-        .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(RoundedRectangle(cornerRadius: 5).fill(isSelected ? theme.selectionBackground : Color.clear))
+        .padding(.horizontal, 2).padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? theme.selectionBackground : Color.clear))
         .overlay(alignment: .bottom) {
-            Rectangle().fill(theme.divider).frame(height: 0.5).padding(.leading, 36)
+            Rectangle().fill(theme.divider).frame(height: 0.5).padding(.leading, 28)
         }
         .contextMenu {
             Button { onTogglePin() } label: {
@@ -145,7 +151,7 @@ struct HistoryRowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
             }
-            .frame(width: 420, height: 240)
+            .frame(width: tooltipSize.width, height: tooltipSize.height)
         }
         .simultaneousGesture(TapGesture(count: 1).modifiers(.option).onEnded { onOptionTap() })
         .simultaneousGesture(TapGesture(count: 1).modifiers([.option, .shift]).onEnded { onOptionShiftTap() })
@@ -153,6 +159,29 @@ struct HistoryRowView: View {
 
     private var needsTextTooltip: Bool {
         item.contentType != .image && !item.isContentHidden && isTextTruncated
+    }
+
+    private var shouldShowPolishButton: Bool {
+        guard item.contentType != .image, !item.isContentHidden else { return false }
+        return PolishableTextClassifier.shouldOfferPolish(for: item.content)
+    }
+
+    private var isJSON: Bool {
+        JSONTextFormatter.formatted(item.content) != nil
+    }
+
+    private var tooltipSize: CGSize {
+        let font = NSFont.systemFont(ofSize: 12)
+        let maxTextWidth: CGFloat = 400
+        let bounds = (item.content as NSString).boundingRect(
+            with: NSSize(width: maxTextWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font]
+        )
+        return CGSize(
+            width: min(max(220, ceil(bounds.width) + 32), 432),
+            height: min(max(70, ceil(bounds.height) + 32), 300)
+        )
     }
 
     private var rowDisplayText: String {
@@ -185,12 +214,10 @@ struct HistoryRowView: View {
         }
     }
 
-    @ViewBuilder
     private var imageThumbnail: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 6)
-                .fill(theme.foreground.opacity(0.06))
-
+                .fill(theme.foreground.opacity(0.05))
             if let data = item.imageData, let image = NSImage(data: data) {
                 Image(nsImage: image)
                     .resizable()
@@ -199,15 +226,13 @@ struct HistoryRowView: View {
                     .clipped()
             } else {
                 Image(systemName: "photo")
-                    .font(.system(size: 17))
                     .foregroundColor(theme.secondaryForeground.opacity(0.55))
             }
         }
         .frame(width: Self.thumbnailSize, height: Self.thumbnailSize)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay {
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(theme.border, lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 6).stroke(theme.border, lineWidth: 0.5)
         }
         .accessibilityHidden(true)
     }

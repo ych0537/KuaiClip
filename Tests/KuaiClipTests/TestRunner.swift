@@ -19,6 +19,8 @@ struct TestRunner {
                 try runHistoryStoreTests()
                 try runLocalizationTests()
                 try runUsageMetricsTests()
+                try runPolishableTextClassifierTests()
+                try runJSONTextFormatterTests()
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
@@ -28,6 +30,41 @@ struct TestRunner {
         } catch {
             fputs("Test failed: \(error)\n", stderr)
             exit(1)
+        }
+    }
+
+    private static func runJSONTextFormatterTests() throws {
+        let source = #"{"z":1,"a":{"enabled":true},"url":"https://example.com/a/b"}"#
+        guard let formatted = JSONTextFormatter.formatted(source) else {
+            throw TestFailure.failed("valid JSON should be formatted")
+        }
+        try expect(formatted.contains("\n"), "formatted JSON should use multiple lines")
+        try expect(formatted.firstIndex(of: "a")! < formatted.firstIndex(of: "z")!, "JSON keys should be sorted")
+        try expect(formatted.contains("https://example.com/a/b"), "URL slashes should remain readable")
+        try expect(JSONTextFormatter.formatted("sudo dnf check-update") == nil, "non-JSON should be rejected")
+    }
+
+    private static func runPolishableTextClassifierTests() throws {
+        let rejected = [
+            "sudo dnf check-update",
+            "echo 'X5O!' P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*",
+            "curl -Iv https://portal.ip.xdr.trendmicro.com",
+            "aws s3 ls s3://jif-mb-log-backup/ --region ap-northeast-1",
+            "https://dev.jii-inforex.co.jp/goods/login",
+            "54.248.190.32",
+            #"{"name":"KuaiClip","enabled":true}"#,
+            "W7ciaV5R4f21Zx9Q"
+        ]
+        for text in rejected {
+            try expect(!PolishableTextClassifier.shouldOfferPolish(for: text), "should reject non-prose: \(text)")
+        }
+
+        let accepted = [
+            "この文章をもう少し自然で読みやすい表現に修正してください。",
+            "Please improve the wording of this message before I send it."
+        ]
+        for text in accepted {
+            try expect(PolishableTextClassifier.shouldOfferPolish(for: text), "should accept natural prose: \(text)")
         }
     }
 

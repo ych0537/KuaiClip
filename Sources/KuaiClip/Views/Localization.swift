@@ -63,7 +63,7 @@ enum L10n {
         "Reset local usage data?": "重置本机使用统计？",
         "This clears only the local counters. Clipboard history and settings are not affected.": "只会清除本机计数，不影响剪贴板历史和设置。",
         "Usage counts stay on this Mac and are never uploaded automatically.": "使用次数仅保存在本机，绝不会自动上传。",
-        "Cancel": "取消"
+        "Cancel": "取消", "Format JSON and copy": "格式化 JSON 并复制"
     ]
 
     static var general: String { text("General", "一般") }
@@ -82,6 +82,7 @@ enum L10n {
     static var polishText: String { text("Polish for work", "ビジネス文章を校正") }
     static var professionalPolish: String { text("Professional polish", "ビジネス文章校正") }
     static var polishAction: String { text("Polish", "校正する", "润色") }
+    static var formatJSONAndCopy: String { text("Format JSON and copy", "JSONを整形してコピー", "格式化 JSON 并复制") }
     static var aiModel: String { text("AI model", "AIモデル") }
     static var configureAIKey: String { text("Add an API key in Preferences → AI Polish first.", "先に設定 → AI文章校正でAPIキーを追加してください。") }
     static var polishedResultPlaceholder: String { text("The polished result will appear here.", "校正した文章がここに表示されます。") }
@@ -152,7 +153,7 @@ enum L10n {
     static var pinLimitTitle: String { text("Pinned item limit reached", "固定項目の上限") }
     static var pinLimitMessage: String { text("You can pin up to 10 items. Unpin an existing item before adding another.", "固定できる項目は10件までです。新しく固定する前に、既存の固定項目を解除してください。") }
     static var ok: String { text("OK", "OK") }
-    static var themeHelp: String { text("Toggle appearance: light or dark", "外観を切り替え：ライト / ダーク") }
+    static var themeHelp: String { text("Cycle color theme", "カラーテーマを切り替え", "循环切换颜色主题") }
     static var appDescription: String { text("Clipboard Manager for macOS", "macOS用クリップボードマネージャー") }
     static var empty: String { text("(empty)", "（空）") }
     static var image: String { text("Image", "画像") }

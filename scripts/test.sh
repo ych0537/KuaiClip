@@ -13,6 +13,8 @@ swiftc \
   Sources/KuaiClip/Services/ClipboardMonitor.swift \
   Sources/KuaiClip/Services/AIKeychain.swift \
   Sources/KuaiClip/Services/TextPolishService.swift \
+  Sources/KuaiClip/Services/PolishableTextClassifier.swift \
+  Sources/KuaiClip/Services/JSONTextFormatter.swift \
   Sources/KuaiClip/Services/UsageMetrics.swift \
   Tests/KuaiClipTests/TestRunner.swift \
   -o .build/tests/KuaiClip-tests

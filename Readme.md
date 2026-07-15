@@ -34,7 +34,7 @@
 - 🔍 **Instant search** — type to filter clipboard history
 - 📌 **Pin items** — keep passwords, snippets, and frequent text always available
 - 👁 **Hide sensitive content** — pin an item and toggle content visibility with the eye button; hidden content never leaks back into history after use
-- 🎨 **2 Codex Desktop themes** — Light / Dark, toggled from the popup
+- 🎨 **6 color themes** — White, Sky, Mint, Sand, Lavender, and Dark, cycled from the popup
 - 🖱 **Mouse hover selection** — move the mouse to instantly select any item
 - ⌨️ **Fully keyboard-driven** — every action has a shortcut
 - 📋 **Rich format detection** — text, RTF, HTML, URLs, file paths, images
@@ -43,8 +43,9 @@
 - 🚀 **Launch at login** — optional, configurable in Preferences
 - 🌐 **Multi-language** — English / 日本語 / 简体中文 interface
 - ↔️ **Remembered popup size** — resize once and the next popup restores that size
-- ✨ **AI workplace polish** — refine Chinese, English, or Japanese email text with OpenAI, Gemini, or DeepSeek
-- 🖼 **Uniform image thumbnails** — preview copied images in consistently sized history rows
+- ✨ **Content-aware AI workplace polish** — natural-language detection hides the action for commands, URLs, code, and structured data
+- `{ }` **JSON format & copy** — pretty-print valid JSON, copy it, and keep the formatted result in history
+- 🖼 **Large image thumbnails** — preview copied images in clear 76 × 76 thumbnails
 - 🐼 **Selectable app icons** — switch the app and menu bar icon between six monochrome mascots
 - 📊 **Private local usage counters** — count popup opens, polish-window opens, and polish runs on this Mac; copy the totals into an optional survey without automatic telemetry
 
@@ -163,12 +164,12 @@ Usage counters are stored only in local `UserDefaults`. KuaiClip never uploads t
 
 ### Themes
 
-KuaiClip supports 2 appearance modes, toggled by clicking the theme button (☀/🌙) in the popup's search bar. Both use the same main-surface colors and native font stacks as Codex Desktop:
+KuaiClip supports 6 appearance modes, cycled by clicking the palette button in the popup's search bar:
 
 | Mode | Icon | Description |
 |------|------|-------------|
-| **Light** | ☀ | `#FFFFFF` background, `#1A1C1F` foreground, system UI font and SF Mono code font |
-| **Dark** | 🌙 | `#181818` background, `#FFFFFF` foreground, system UI font and SF Mono code font |
+| **White / Sky / Mint / Sand / Lavender** | 🎨 | Low-saturation light palettes with dark foreground text |
+| **Dark** | 🎨 | `#181818` background with a light foreground |
 
 Existing `System` and `Gray` preferences are migrated automatically to Light and Dark respectively.
 

@@ -31,3 +31,4 @@ Icon
 
 # Artifacts
 /release/
+/.wrangler/
