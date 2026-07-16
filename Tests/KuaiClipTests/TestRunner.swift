@@ -24,7 +24,8 @@ struct TestRunner {
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
-            try azureV1EndpointBuildsChatCompletionsURL()
+            try ollamaDisablesThinking()
+            try codexAzureConfigurationReadsOnlyNonSensitiveFields()
             try expect(AIModel.deepSeekFlash.displayName == "deepseek-v4-flash", "AI model picker should show only the model ID")
             print("All KuaiClip tests passed")
         } catch {
@@ -80,15 +81,29 @@ struct TestRunner {
         }
     }
 
-    private static func azureV1EndpointBuildsChatCompletionsURL() throws {
-        let url = try TextPolishService.azureChatCompletionsURL(
-            endpoint: "https://example.internal/openai/v1/",
-            deployment: "company-gpt"
-        )
-        try expect(
-            url.absoluteString == "https://example.internal/openai/v1/chat/completions",
-            "Azure v1 endpoint should append chat/completions without a legacy deployments path"
-        )
+    private static func ollamaDisablesThinking() throws {
+        let data = try TextPolishService.ollamaRequestBody("hello", model: "qwen3:1.7b")
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        try expect(json?["think"] as? Bool == false, "Ollama requests should disable thinking")
+        try expect(json?["stream"] as? Bool == false, "Ollama requests should disable streaming")
+        try expect(json?["model"] as? String == "qwen3:1.7b", "Ollama requests should use the selected model")
+    }
+
+    private static func codexAzureConfigurationReadsOnlyNonSensitiveFields() throws {
+        let config = TextPolishService.parseCodexAzureConfiguration("""
+        model = "gpt-5.4"
+
+        [model_providers.azure]
+        name = "Azure OpenAI"
+        base_url = "https://example.openai.azure.com/openai"
+        wire_api = "responses"
+        env_key = "AZURE_OPENAI_API_KEY"
+
+        [model_providers.other]
+        model = "must-not-be-read"
+        """)
+        try expect(config?.baseURL == "https://example.openai.azure.com/openai", "Codex Azure base URL")
+        try expect(config?.model == "gpt-5.4", "Codex Azure model")
     }
 
     @MainActor

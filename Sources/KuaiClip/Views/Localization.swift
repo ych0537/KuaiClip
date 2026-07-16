@@ -17,8 +17,11 @@ enum L10n {
 
     private static let chineseTranslations: [String: String] = [
         "General": "通用", "Shortcuts": "快捷键", "About": "关于",
-        "AI Polish": "AI 润色", "AI Provider API Keys": "AI 服务商 API Key",
+        "AI Polish": "AI 润色", "AI Providers": "AI 服务商",
         "AI provider": "AI 服务商", "API key": "API Key", "Save API Key": "保存 API Key",
+        "Ollama model": "Ollama 模型", "Refresh Ollama models": "刷新 Ollama 模型",
+        "No local models found": "未找到本地模型", "Cannot connect to local Ollama.": "无法连接本地 Ollama。",
+        "Ollama runs locally and does not require an API key.": "Ollama 在本机运行，不需要 API Key。",
         "Delete API Key": "删除 API Key", "API key deleted from macOS Keychain": "已从 macOS 钥匙串删除 API Key",
         "Save API Keys": "保存 API Key", "Saved securely in macOS Keychain": "已安全保存到 macOS 钥匙串",
         "Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.": "Key 仅保存在 macOS 钥匙串。只有主动润色时，文本才会发送给所选服务商。",
@@ -28,7 +31,8 @@ enum L10n {
         "The API key for this provider is missing.": "尚未设置此服务商的 API Key。",
         "The AI returned an unreadable response.": "AI 返回了无法读取的结果。",
         "The AI request failed.": "AI 请求失败。", "Behavior": "行为", "Data": "数据",
-        "Azure endpoint": "Azure Endpoint", "Deployment name": "部署名称",
+        "Azure endpoint": "Azure Endpoint", "Model / deployment": "模型 / 部署名称",
+        "Import from Codex config": "从 Codex 配置导入",
         "The Azure OpenAI configuration is invalid.": "Azure OpenAI 配置无效。",
         "Max history": "最大历史记录", "Unpinned items kept (10–100)": "保留的未固定项目（10–100）",
         "Clipboard polling": "剪贴板检查间隔", "Launch at login": "登录时启动",
@@ -70,9 +74,14 @@ enum L10n {
     static var shortcuts: String { text("Shortcuts", "ショートカット") }
     static var about: String { text("About", "情報") }
     static var aiPolish: String { text("AI Polish", "AI文章校正") }
-    static var aiProviders: String { text("AI Provider API Keys", "AIプロバイダーのAPIキー") }
+    static var aiProviders: String { text("AI Providers", "AIプロバイダー") }
     static var aiProvider: String { text("AI provider", "AIプロバイダー") }
     static var apiKey: String { text("API key", "APIキー") }
+    static var ollamaModel: String { text("Ollama model", "Ollamaモデル") }
+    static var refreshOllamaModels: String { text("Refresh Ollama models", "Ollamaモデルを更新") }
+    static var noOllamaModels: String { text("No local models found", "ローカルモデルが見つかりません") }
+    static var ollamaUnavailable: String { text("Cannot connect to local Ollama.", "ローカルOllamaに接続できません。") }
+    static var ollamaLocalPrivacy: String { text("Ollama runs locally and does not require an API key.", "Ollamaはローカルで動作し、APIキーは不要です。") }
     static var saveAPIKey: String { text("Save API Key", "APIキーを保存") }
     static var deleteAPIKey: String { text("Delete API Key", "APIキーを削除") }
     static var saveAPIKeys: String { text("Save API Keys", "APIキーを保存") }
@@ -90,7 +99,8 @@ enum L10n {
     static var aiInvalidResponse: String { text("The AI returned an unreadable response.", "AIから読み取れない応答が返されました。") }
     static var aiRequestFailed: String { text("The AI request failed.", "AIへのリクエストに失敗しました。") }
     static var azureEndpoint: String { text("Azure endpoint", "Azureエンドポイント", "Azure Endpoint") }
-    static var azureDeployment: String { text("Deployment name", "デプロイ名", "部署名称") }
+    static var azureDeployment: String { text("Model / deployment", "モデル / デプロイ名", "模型 / 部署名称") }
+    static var importCodexAzureConfig: String { text("Import from Codex config", "Codex設定から読み込む", "从 Codex 配置导入") }
     static var azureAPIKeyPlaceholder: String { "Azure API Key" }
     static var azureConfigurationInvalid: String { text("The Azure OpenAI configuration is invalid.", "Azure OpenAIの設定が無効です。", "Azure OpenAI 配置无效。") }
     static func polishTextTooLong(_ limit: Int) -> String {

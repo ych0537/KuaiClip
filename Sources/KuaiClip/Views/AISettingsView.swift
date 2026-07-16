@@ -10,6 +10,7 @@ struct AISettingsView: View {
         case azureOpenAI = "azure-openai"
         case gemini
         case deepSeek = "deepseek"
+        case ollama
 
         var id: String { rawValue }
         var title: String {
@@ -18,6 +19,7 @@ struct AISettingsView: View {
             case .azureOpenAI: return "Azure OpenAI"
             case .gemini: return "Gemini"
             case .deepSeek: return "DeepSeek"
+            case .ollama: return "Ollama"
             }
         }
         var placeholder: String {
@@ -26,6 +28,7 @@ struct AISettingsView: View {
             case .azureOpenAI: return L10n.azureAPIKeyPlaceholder
             case .gemini: return "AIza…"
             case .deepSeek: return "sk-…"
+            case .ollama: return ""
             }
         }
     }
@@ -37,6 +40,11 @@ struct AISettingsView: View {
     @State private var keyOperationStatus: KeyOperationStatus?
     @AppStorage("azureOpenAIEndpoint") private var azureEndpoint = ""
     @AppStorage("azureOpenAIDeployment") private var azureDeployment = ""
+    @AppStorage("didImportCodexAzureConfig") private var didImportCodexAzureConfig = false
+    @AppStorage("ollamaModel") private var ollamaModel = ""
+    @State private var ollamaModels: [String] = []
+    @State private var isLoadingOllamaModels = false
+    @State private var ollamaError: String?
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
     private var provider: Provider { Provider(rawValue: providerValue) ?? .openAI }
@@ -55,10 +63,12 @@ struct AISettingsView: View {
                     .fixedSize()
                 }
 
-                settingsRow(L10n.apiKey) {
-                    SecureField("", text: $apiKey, prompt: Text(provider.placeholder))
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
+                if provider != .ollama {
+                    settingsRow(L10n.apiKey) {
+                        SecureField("", text: $apiKey, prompt: Text(provider.placeholder))
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
 
                 if provider == .azureOpenAI {
@@ -76,10 +86,50 @@ struct AISettingsView: View {
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                     }
+                    HStack {
+                        Spacer()
+                            .frame(width: 161)
+                        Button(L10n.importCodexAzureConfig) {
+                            importCodexAzureConfiguration(overwrite: true)
+                        }
+                        .buttonStyle(.link)
+                        Spacer()
+                    }
+                }
+
+                if provider == .ollama {
+                    settingsRow(L10n.ollamaModel) {
+                        HStack(spacing: 8) {
+                            Picker("", selection: $ollamaModel) {
+                                if ollamaModels.isEmpty {
+                                    if ollamaModel.isEmpty {
+                                        Text(L10n.noOllamaModels).tag("")
+                                    } else {
+                                        Text(ollamaModel).tag(ollamaModel)
+                                    }
+                                } else {
+                                    ForEach(ollamaModels, id: \.self) { Text($0).tag($0) }
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            Button { Task { await loadOllamaModels() } } label: {
+                                if isLoadingOllamaModels {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Image(systemName: "arrow.clockwise")
+                                }
+                            }
+                            .help(L10n.refreshOllamaModels)
+                            .disabled(isLoadingOllamaModels)
+                        }
+                    }
                 }
             }
 
-            Section {
+            if provider != .ollama {
+                Section {
                 HStack(spacing: 12) {
                     Button(L10n.saveAPIKey) {
                         let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -106,13 +156,32 @@ struct AISettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Text(L10n.apiKeyPrivacy).font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                Section {
+                    Label(TextPolishService.ollamaEndpoint, systemImage: "desktopcomputer")
+                        .foregroundStyle(.secondary)
+                    if let ollamaError {
+                        Text(ollamaError).font(.caption).foregroundStyle(.red)
+                    } else {
+                        Text(L10n.ollamaLocalPrivacy).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(theme.background)
-        .onAppear { loadKey() }
-        .onChange(of: providerValue) { _, _ in loadKey() }
+        .onAppear {
+            loadKey()
+            if provider == .azureOpenAI { importCodexAzureConfiguration() }
+            if provider == .ollama { Task { await loadOllamaModels() } }
+        }
+        .onChange(of: providerValue) { _, _ in
+            loadKey()
+            if provider == .azureOpenAI { importCodexAzureConfiguration() }
+            if provider == .ollama { Task { await loadOllamaModels() } }
+        }
     }
 
     private func settingsRow<Content: View>(
@@ -131,5 +200,34 @@ struct AISettingsView: View {
         apiKey = AIKeychain.read(provider.rawValue)
         hasStoredKey = !apiKey.isEmpty
         keyOperationStatus = nil
+    }
+
+    private func importCodexAzureConfiguration(overwrite: Bool = false) {
+        guard overwrite || !didImportCodexAzureConfig else { return }
+        guard let config = TextPolishService.codexAzureConfiguration() else { return }
+        if overwrite || azureEndpoint.isEmpty {
+            azureEndpoint = config.baseURL
+        }
+        if overwrite || azureDeployment.isEmpty {
+            azureDeployment = config.model
+        }
+        didImportCodexAzureConfig = true
+    }
+
+    @MainActor
+    private func loadOllamaModels() async {
+        isLoadingOllamaModels = true
+        ollamaError = nil
+        defer { isLoadingOllamaModels = false }
+        do {
+            ollamaModels = try await TextPolishService.fetchOllamaModels()
+            if !ollamaModels.contains(ollamaModel) {
+                ollamaModel = ollamaModels.first(where: { $0 == "qwen3:1.7b" })
+                    ?? ollamaModels.first ?? ""
+            }
+        } catch {
+            ollamaModels = []
+            ollamaError = L10n.ollamaUnavailable
+        }
     }
 }
