@@ -70,26 +70,6 @@ final class MenuBarManager: NSObject {
     private func makeMenu() -> NSMenu {
         let menu = NSMenu()
 
-        let clearUnpinnedItem = NSMenuItem(
-            title: L10n.clearUnpinned,
-            action: #selector(menuClearUnpinned),
-            keyEquivalent: ""
-         )
-        clearUnpinnedItem.target = self
-        menu.addItem(clearUnpinnedItem)
-
-        let clearAllItem = NSMenuItem(
-            title: L10n.clearAllItems,
-            action: #selector(menuClearAll),
-            keyEquivalent: ""
-         )
-        clearAllItem.target = self
-        clearAllItem.keyEquivalentModifierMask = .option
-        clearAllItem.isAlternate = true
-        menu.addItem(clearAllItem)
-
-        menu.addItem(.separator())
-
         let prefsItem = NSMenuItem(
             title: L10n.preferences,
             action: #selector(menuOpenPreferences),
@@ -286,14 +266,6 @@ final class MenuBarManager: NSObject {
      }
 
      // MARK: - Menu Actions
-
-    @objc private func menuClearUnpinned() {
-        HistoryStore.shared.clearUnpinned()
-     }
-
-    @objc private func menuClearAll() {
-        HistoryStore.shared.clearAll()
-     }
 
     @objc private func menuOpenPreferences() {
         showPreferences()

@@ -35,6 +35,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotkeyManager.shared.onHotkeyPressed = { [weak self] in
             self?.handleHotkeyPressed()
         }
+        HotkeyManager.shared.onScreenshotHotkeyPressed = {
+            ScreenshotService.shared.showModeChooser()
+        }
         HotkeyManager.shared.register()
 
         // Intercept CMD+, globally since LSUIElement hides the app menu

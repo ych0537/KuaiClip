@@ -10,7 +10,9 @@ final class HotkeyManager {
     static let shared = HotkeyManager()
 
     private var hotkeyRef: EventHotKeyRef?
+    private var screenshotHotkeyRef: EventHotKeyRef?
     private var hotkeyID = EventHotKeyID(signature: 0x44_58_43_42, id: 1)
+    private var screenshotHotkeyID = EventHotKeyID(signature: 0x44_58_43_42, id: 2)
     private var eventHandlerRef: EventHandlerRef?
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -18,6 +20,8 @@ final class HotkeyManager {
     // Carbon hotkey state
     private(set) var currentKeyCode: UInt32 = UInt32(kVK_ANSI_C)
     private(set) var currentModifiers: UInt32 = UInt32(shiftKey | cmdKey)
+    private(set) var screenshotKeyCode: UInt32 = UInt32(kVK_ANSI_S)
+    private(set) var screenshotModifiers: UInt32 = UInt32(shiftKey | cmdKey)
 
     // Double-tap state
     private var lastCmdPressTime: Date = .distantPast
@@ -25,6 +29,7 @@ final class HotkeyManager {
     private var cmdIsDown: Bool = false
 
     var onHotkeyPressed: (() -> Void)?
+    var onScreenshotHotkeyPressed: (() -> Void)?
 
     /// Whether Accessibility permissions are granted
     var isAccessibilityGranted: Bool { AXIsProcessTrusted() }
@@ -57,13 +62,33 @@ final class HotkeyManager {
         } else {
             registerCarbonHotkey()
         }
+        registerScreenshotHotkey()
     }
 
     func updateHotkey(keyCode: UInt32, modifiers: UInt32) {
+        guard !conflictsWithScreenshot(keyCode: keyCode, modifiers: modifiers) else { return }
         currentKeyCode = keyCode
         currentModifiers = modifiers
         saveHotkey()
         register()
+    }
+
+    func updateScreenshotHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool {
+        guard !conflictsWithPopup(keyCode: keyCode, modifiers: modifiers) else { return false }
+        screenshotKeyCode = keyCode
+        screenshotModifiers = modifiers
+        UserDefaults.standard.set(Int(keyCode), forKey: "screenshot_hotkey_keyCode")
+        UserDefaults.standard.set(Int(modifiers), forKey: "screenshot_hotkey_modifiers")
+        register()
+        return true
+    }
+
+    func conflictsWithPopup(keyCode: UInt32, modifiers: UInt32) -> Bool {
+        !effectiveDoubleTap && keyCode == currentKeyCode && modifiers == currentModifiers
+    }
+
+    func conflictsWithScreenshot(keyCode: UInt32, modifiers: UInt32) -> Bool {
+        keyCode == screenshotKeyCode && modifiers == screenshotModifiers
     }
 
     func unregister() { unregisterAll() }
@@ -142,23 +167,74 @@ final class HotkeyManager {
             )
             let ptr = Unmanaged.passUnretained(self).toOpaque()
             InstallEventHandler(GetEventDispatcherTarget(),
-                { (_, _, ud) -> OSStatus in
+                { (_, event, ud) -> OSStatus in
                     guard let ud = ud else { return -1 }
-                    Unmanaged<HotkeyManager>.fromOpaque(ud).takeUnretainedValue()
-                        .fireHotkey()
+                    let manager = Unmanaged<HotkeyManager>.fromOpaque(ud).takeUnretainedValue()
+                    var pressedID = EventHotKeyID()
+                    let status = GetEventParameter(
+                        event, EventParamName(kEventParamDirectObject),
+                        EventParamType(typeEventHotKeyID), nil,
+                        MemoryLayout<EventHotKeyID>.size, nil, &pressedID
+                    )
+                    guard status == noErr else { return status }
+                    manager.fireHotkey(id: pressedID.id)
                     return noErr
                 }, 1, &spec, ptr, &eventHandlerRef)
         }
     }
 
-    private func fireHotkey() {
-        DispatchQueue.main.async { [weak self] in self?.onHotkeyPressed?() }
+    private func registerScreenshotHotkey() {
+        var ref: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            screenshotKeyCode, screenshotModifiers, screenshotHotkeyID,
+            GetEventDispatcherTarget(), 0, &ref
+        )
+        if status == noErr {
+            screenshotHotkeyRef = ref
+        } else {
+            NSLog("[KuaiClip] Screenshot hotkey failed: %d", status)
+        }
+        if eventHandlerRef == nil {
+            registerCarbonHotkeyHandlerOnly()
+        }
+    }
+
+    private func registerCarbonHotkeyHandlerOnly() {
+        var spec = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let ptr = Unmanaged.passUnretained(self).toOpaque()
+        InstallEventHandler(GetEventDispatcherTarget(), { (_, event, ud) -> OSStatus in
+            guard let ud else { return -1 }
+            let manager = Unmanaged<HotkeyManager>.fromOpaque(ud).takeUnretainedValue()
+            var pressedID = EventHotKeyID()
+            let status = GetEventParameter(
+                event, EventParamName(kEventParamDirectObject),
+                EventParamType(typeEventHotKeyID), nil,
+                MemoryLayout<EventHotKeyID>.size, nil, &pressedID
+            )
+            guard status == noErr else { return status }
+            manager.fireHotkey(id: pressedID.id)
+            return noErr
+        }, 1, &spec, ptr, &eventHandlerRef)
+    }
+
+    private func fireHotkey(id: UInt32) {
+        DispatchQueue.main.async { [weak self] in
+            if id == self?.screenshotHotkeyID.id {
+                self?.onScreenshotHotkeyPressed?()
+            } else {
+                self?.onHotkeyPressed?()
+            }
+        }
     }
 
     // MARK: - Cleanup
 
     private func unregisterAll() {
         if let r = hotkeyRef { UnregisterEventHotKey(r); hotkeyRef = nil }
+        if let r = screenshotHotkeyRef { UnregisterEventHotKey(r); screenshotHotkeyRef = nil }
         if let r = eventHandlerRef { RemoveEventHandler(r); eventHandlerRef = nil }
         if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
         if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
@@ -189,6 +265,15 @@ final class HotkeyManager {
             currentKeyCode = UInt32(kc)
             currentModifiers = UInt32(mods)
             if !effectiveDoubleTap { register() }
+        }
+    }
+
+    func applyScreenshotFromStorage() {
+        let d = UserDefaults.standard
+        let keyCode = d.integer(forKey: "screenshot_hotkey_keyCode")
+        let modifiers = d.integer(forKey: "screenshot_hotkey_modifiers")
+        if keyCode > 0 {
+            _ = updateScreenshotHotkey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))
         }
     }
 
@@ -234,6 +319,12 @@ final class HotkeyManager {
         let kc = d.integer(forKey: "hotkey_keyCode")
         let mods = d.integer(forKey: "hotkey_modifiers")
         if kc > 0 { currentKeyCode = UInt32(kc); currentModifiers = UInt32(mods) }
+        let screenshotKC = d.integer(forKey: "screenshot_hotkey_keyCode")
+        let screenshotMods = d.integer(forKey: "screenshot_hotkey_modifiers")
+        if screenshotKC > 0 {
+            screenshotKeyCode = UInt32(screenshotKC)
+            screenshotModifiers = UInt32(screenshotMods)
+        }
     }
 
     private func saveHotkey() {

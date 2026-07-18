@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import ServiceManagement
+import Carbon
 
 struct PreferencesView: View {
     private enum SettingsTab: String, CaseIterable {
@@ -14,16 +15,20 @@ struct PreferencesView: View {
     @AppStorage("hotkey_useDoubleTap") private var useDoubleTapCommand: Bool = true
     @AppStorage("hotkey_keyCode") private var hotkeyKeyCode: Int = 8
     @AppStorage("hotkey_modifiers") private var hotkeyModifiers: Int = 512 | 256
+    @AppStorage("screenshot_hotkey_keyCode") private var screenshotHotkeyKeyCode: Int = 1
+    @AppStorage("screenshot_hotkey_modifiers") private var screenshotHotkeyModifiers: Int = 512 | 256
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appearanceMode") private var appearanceMode: String = "light"
     @AppStorage(AppIconTheme.defaultsKey) private var appIconTheme: String = AppIconTheme.pandaTyping.rawValue
 
     @State private var historyCount: Int = 0
     @State private var isRecording: Bool = false
+    @State private var isRecordingScreenshot: Bool = false
     @State private var recordMonitor: Any?
     @State private var selectedTab: SettingsTab = .general
     @State private var showResetUsageConfirmation = false
     @State private var usageReportCopied = false
+    @State private var showShortcutConflict = false
     @ObservedObject private var usageMetrics = UsageMetrics.shared
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
@@ -66,6 +71,11 @@ struct PreferencesView: View {
             }
         } message: {
             Text(L10n.resetUsageMessage)
+        }
+        .alert(L10n.shortcutConflictTitle, isPresented: $showShortcutConflict) {
+            Button(L10n.ok) {}
+        } message: {
+            Text(L10n.shortcutConflictMessage)
         }
     }
 
@@ -241,6 +251,32 @@ struct PreferencesView: View {
                 }
             }
 
+            Section(L10n.screenshotShortcut) {
+                LabeledContent {
+                    HStack(spacing: 8) {
+                        shortcutBadge(HotkeyManager.shared.carbonDescription(
+                            keyCode: UInt32(screenshotHotkeyKeyCode),
+                            modifiers: UInt32(screenshotHotkeyModifiers)
+                        ))
+                        if isRecordingScreenshot {
+                            Text(L10n.pressKeys).font(.caption).foregroundColor(.accentColor)
+                                .onAppear { installScreenshotRecordMonitor() }
+                        } else {
+                            Button(L10n.record) {
+                                stopRecording()
+                                isRecordingScreenshot = true
+                            }
+                            Button(L10n.reset) { resetScreenshotHotkey() }
+                        }
+                    }
+                } label: {
+                    settingLabel(L10n.currentShortcut, icon: "camera.viewfinder")
+                }
+                Text(L10n.screenshotShortcutHelp)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section(L10n.withinPopup) {
                 shortcutRow("↩", L10n.copySelected)
                 shortcutRow("⌥↩", L10n.copyPaste)
@@ -367,6 +403,13 @@ struct PreferencesView: View {
         recordMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let mods = HotkeyManager.carbonModifiersFromNSEvent(event)
             guard mods != 0 else { stopRecording(); return nil }
+            if HotkeyManager.shared.conflictsWithScreenshot(
+                keyCode: UInt32(event.keyCode), modifiers: mods
+            ) {
+                showShortcutConflict = true
+                stopRecording()
+                return nil
+            }
             hotkeyKeyCode = Int(event.keyCode)
             hotkeyModifiers = Int(mods)
             HotkeyManager.shared.applyCustomFromStorage()
@@ -382,6 +425,37 @@ struct PreferencesView: View {
             recordMonitor = nil
         }
         isRecording = false
+        isRecordingScreenshot = false
+    }
+
+    private func installScreenshotRecordMonitor() {
+        if let monitor = recordMonitor { NSEvent.removeMonitor(monitor) }
+        recordMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let mods = HotkeyManager.carbonModifiersFromNSEvent(event)
+            guard mods != 0 else { stopRecording(); return nil }
+            let accepted = HotkeyManager.shared.updateScreenshotHotkey(
+                keyCode: UInt32(event.keyCode), modifiers: mods
+            )
+            if accepted {
+                screenshotHotkeyKeyCode = Int(event.keyCode)
+                screenshotHotkeyModifiers = Int(mods)
+            } else {
+                showShortcutConflict = true
+            }
+            stopRecording()
+            return nil
+        }
+    }
+
+    private func resetScreenshotHotkey() {
+        guard HotkeyManager.shared.updateScreenshotHotkey(
+            keyCode: UInt32(kVK_ANSI_S), modifiers: UInt32(shiftKey | cmdKey)
+        ) else {
+            showShortcutConflict = true
+            return
+        }
+        screenshotHotkeyKeyCode = Int(kVK_ANSI_S)
+        screenshotHotkeyModifiers = Int(shiftKey | cmdKey)
     }
 
     private func resetHotkey() {

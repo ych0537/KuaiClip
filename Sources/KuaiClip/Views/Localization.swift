@@ -219,6 +219,29 @@ enum L10n {
         )
     }
     static var cancel: String { text("Cancel", "キャンセル") }
+    static var takeScreenshot: String { text("Take Screenshot…", "スクリーンショット…", "截图…") }
+    static var screenshotShortcut: String { text("Screenshot", "スクリーンショット", "截图") }
+    static var screenshotShortcutHelp: String { text("Opens a menu for region, window, or full-screen capture.", "範囲・ウィンドウ・全画面の撮影メニューを開きます。", "打开区域、窗口或全屏截图菜单。") }
+    static var shortcutConflictTitle: String { text("Shortcut already in use", "ショートカットが重複しています", "快捷键已被使用") }
+    static var shortcutConflictMessage: String { text("The clipboard popup and screenshot shortcuts must be different.", "クリップボードとスクリーンショットには異なるショートカットを設定してください。", "剪贴板窗口与截图不能使用相同的快捷键。") }
+    static var captureRegion: String { text("Capture Region", "範囲を撮影", "区域截图") }
+    static var captureWindow: String { text("Capture Window", "ウィンドウを撮影", "窗口截图") }
+    static var captureFullScreen: String { text("Capture Full Screen", "全画面を撮影", "全屏截图") }
+    static var screenshotEditor: String { text("Screenshot Editor", "スクリーンショット編集", "截图编辑") }
+    static var screenshotFailed: String { text("Screenshot Failed", "スクリーンショットに失敗しました", "截图失败") }
+    static var download: String { text("Download", "ダウンロード", "下载") }
+    static var copy: String { text("Copy", "コピー", "复制") }
+    static var undo: String { text("Undo", "取り消す", "撤销") }
+    static var clearAnnotations: String { text("Clear annotations", "注釈をすべて消去", "清除标注") }
+    static var enterText: String { text("Enter annotation text", "注釈テキストを入力", "输入标注文字") }
+    static var annotationRectangle: String { text("Rectangle", "四角形", "矩形") }
+    static var annotationEllipse: String { text("Ellipse", "楕円", "圆形") }
+    static var annotationLine: String { text("Line", "直線", "直线") }
+    static var annotationArrow: String { text("Arrow", "矢印", "箭头") }
+    static var annotationPen: String { text("Pen", "ペン", "画笔") }
+    static var annotationMosaic: String { text("Mosaic", "モザイク", "马赛克") }
+    static var annotationText: String { text("Text", "テキスト", "文字") }
+    static var annotationNumber: String { text("Number", "番号", "编号") }
     static var ocrAction: String { text("Recognize Text", "テキストを認識", "识别文字") }
     static var ocrRecognizing: String { text("Recognizing text…", "テキストを認識中…", "正在识别文字…") }
     static var ocrResultTitle: String { text("Recognized Text", "認識したテキスト", "识别结果") }
