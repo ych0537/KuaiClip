@@ -9,6 +9,8 @@ struct PopupView: View {
     @State private var isMouseScrolling: Bool = false
     @State private var showPinLimitAlert: Bool = false
     @State private var polishItem: ClipboardItem?
+    @State private var ocrResult: OCRResult?
+    @State private var recognizingItemIDs: Set<UUID> = []
     private let historyStore = HistoryStore.shared
     @FocusState private var isSearchFocused: Bool
 
@@ -80,6 +82,15 @@ struct PopupView: View {
             TextPolishView(source: item.content) {
                 polishItem = nil
                 DispatchQueue.main.async { onDismiss() }
+            }
+        }
+        .sheet(item: $ocrResult) { result in
+            OCRResultView(result: result, theme: theme) {
+                copyOCRText(result.text)
+                ocrResult = nil
+                DispatchQueue.main.async { onDismiss() }
+            } onClose: {
+                ocrResult = nil
             }
         }
         .modifier(PopupKeyboardHandler(
@@ -197,6 +208,8 @@ struct PopupView: View {
                             polishItem = item
                         },
                         onFormatJSON: { formatJSONAndCopy(item) },
+                        onOCR: { recognizeText(in: item) },
+                        isRecognizingText: recognizingItemIDs.contains(item.id),
                         theme: theme
                     )
                     .id(index)
@@ -276,6 +289,30 @@ struct PopupView: View {
         onDismiss()
     }
 
+    private func recognizeText(in item: ClipboardItem) {
+        guard let imageData = item.imageData,
+              recognizingItemIDs.insert(item.id).inserted else { return }
+
+        Task {
+            defer { recognizingItemIDs.remove(item.id) }
+            do {
+                let text = try await OCRService.recognizeText(in: imageData)
+                ocrResult = OCRResult(text: text, isError: false)
+            } catch {
+                let message = (error as? LocalizedError)?.errorDescription ?? L10n.ocrFailed
+                ocrResult = OCRResult(text: message, isError: true)
+            }
+        }
+    }
+
+    private func copyOCRText(_ text: String) {
+        HistoryStore.shared.addItem(text, contentType: .text)
+        guard let textItem = HistoryStore.shared.items.first(where: {
+            $0.contentType == .text && $0.content == text
+        }) else { return }
+        PasteService.shared.copyToClipboard(textItem)
+    }
+
     private func deleteItem(_ item: ClipboardItem) {
         HistoryStore.shared.removeItem(item)
     }
@@ -326,6 +363,60 @@ struct PopupView: View {
         PasteService.shared.copyAndPaste(item, pasteWithoutFormatting: true)
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()
+    }
+}
+
+private struct OCRResult: Identifiable {
+    let id = UUID()
+    let text: String
+    let isError: Bool
+}
+
+private struct OCRResultView: View {
+    let result: OCRResult
+    let theme: AppTheme
+    let onCopy: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack {
+                Text(result.isError ? L10n.ocrFailedTitle : L10n.ocrResultTitle)
+                    .font(.headline)
+                Spacer()
+                Button { onClose() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+            }
+
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    Text(result.text)
+                        .font(theme.uiFont(size: 13))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                }
+                .frame(maxHeight: .infinity)
+                .background {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(theme.foreground.opacity(0.06))
+                }
+                if !result.isError {
+                    Button { onCopy() } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(L10n.ocrCopy)
+                    .padding(12)
+                }
+            }
+        }
+        .padding(20)
+        .frame(width: 650, height: 480)
+        .background(theme.background)
+        .foregroundStyle(theme.foreground)
     }
 }
 

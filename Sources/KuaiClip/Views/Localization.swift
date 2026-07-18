@@ -67,7 +67,12 @@ enum L10n {
         "Reset local usage data?": "重置本机使用统计？",
         "This clears only the local counters. Clipboard history and settings are not affected.": "只会清除本机计数，不影响剪贴板历史和设置。",
         "Usage counts stay on this Mac and are never uploaded automatically.": "使用次数仅保存在本机，绝不会自动上传。",
-        "Cancel": "取消", "Format JSON and copy": "格式化 JSON 并复制"
+        "Cancel": "取消", "Format JSON and copy": "格式化 JSON 并复制",
+        "Recognize Text": "识别文字", "Recognizing text…": "正在识别文字…",
+        "Recognized Text": "识别结果", "Copy Text": "复制文字",
+        "No text was found in this image.": "未在图片中识别到文字。",
+        "Text Recognition Failed": "文字识别失败",
+        "Unable to recognize text in this image.": "无法识别此图片中的文字。"
     ]
 
     static var general: String { text("General", "一般") }
@@ -214,6 +219,17 @@ enum L10n {
         )
     }
     static var cancel: String { text("Cancel", "キャンセル") }
+    static var ocrAction: String { text("Recognize Text", "テキストを認識", "识别文字") }
+    static var ocrRecognizing: String { text("Recognizing text…", "テキストを認識中…", "正在识别文字…") }
+    static var ocrResultTitle: String { text("Recognized Text", "認識したテキスト", "识别结果") }
+    static var ocrCopy: String { text("Copy Text", "テキストをコピー", "复制文字") }
+    static var ocrNoText: String {
+        text("No text was found in this image.", "画像内にテキストが見つかりませんでした。", "未在图片中识别到文字。")
+    }
+    static var ocrFailedTitle: String { text("Text Recognition Failed", "テキスト認識に失敗", "文字识别失败") }
+    static var ocrFailed: String {
+        text("Unable to recognize text in this image.", "画像内のテキストを認識できませんでした。", "无法识别此图片中的文字。")
+    }
 
     static func timeAgo(_ interval: TimeInterval, date: Date) -> String {
         if interval < 60 { return text("Just now", "たった今", "刚刚") }

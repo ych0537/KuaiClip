@@ -18,6 +18,8 @@ struct HistoryRowView: View {
     let onTogglePin: () -> Void
     let onPolish: () -> Void
     let onFormatJSON: () -> Void
+    let onOCR: () -> Void
+    let isRecognizingText: Bool
     let theme: AppTheme
 
     @State private var showTooltip: Bool = false
@@ -103,6 +105,24 @@ struct HistoryRowView: View {
                     .help(L10n.formatJSONAndCopy)
                 }
 
+                if item.contentType == .image, item.imageData != nil, !item.isContentHidden {
+                    Button { onOCR() } label: {
+                        if isRecognizingText {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .frame(width: 20, height: 20)
+                        } else {
+                            Image(systemName: "text.viewfinder")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(isSelected ? theme.foreground : theme.accent)
+                                .frame(width: 20, height: 20)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isRecognizingText)
+                    .help(isRecognizingText ? L10n.ocrRecognizing : L10n.ocrAction)
+                }
+
                 if isSelected {
                     Button { onDelete() } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -127,6 +147,13 @@ struct HistoryRowView: View {
                     Label(item.isContentHidden ? L10n.showContent : L10n.hideContent,
                           systemImage: item.isContentHidden ? "eye" : "eye.slash")
                 }
+            }
+            if item.contentType == .image, item.imageData != nil, !item.isContentHidden {
+                Divider()
+                Button { onOCR() } label: {
+                    Label(L10n.ocrAction, systemImage: "text.viewfinder")
+                }
+                .disabled(isRecognizingText)
             }
             Divider()
             Button(role: .destructive) { onDelete() } label: {
