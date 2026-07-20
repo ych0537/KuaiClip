@@ -14,6 +14,7 @@ final class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem?
     private var popupWindow: NSWindow?
     private var preferencesWindow: NSWindow?
+    private var previouslyActiveApplication: NSRunningApplication?
     private var isPopupVisible: Bool = false
     private var isPopupAlertPresented: Bool = false
 
@@ -108,6 +109,12 @@ final class MenuBarManager: NSObject {
         UsageMetrics.shared.recordPopupOpened()
         NSLog("[KuaiClip] showPopup called")
 
+        let frontmostApplication = NSWorkspace.shared.frontmostApplication
+        previouslyActiveApplication =
+            frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
+            ? nil
+            : frontmostApplication
+
         let popupView = PopupView(
             onPinLimitAlertPresented: {
                 self.isPopupAlertPresented = true
@@ -156,7 +163,7 @@ final class MenuBarManager: NSObject {
         isPopupVisible = true
      }
 
-    func dismissPopup() {
+    func dismissPopup(restorePreviousApplication: Bool = true) {
         guard isPopupVisible, let window = popupWindow else { return }
         NSLog("[KuaiClip] dismissPopup called")
         savePopupSize(window.frame.size)
@@ -164,10 +171,16 @@ final class MenuBarManager: NSObject {
         popupWindow = nil
         isPopupVisible = false
         isPopupAlertPresented = false
+
+        let applicationToRestore = previouslyActiveApplication
+        previouslyActiveApplication = nil
+        if restorePreviousApplication {
+            applicationToRestore?.activate(options: [])
+        }
      }
 
     func showPreferences() {
-        dismissPopup()
+        dismissPopup(restorePreviousApplication: false)
 
          // Return existing window if already open
         if let win = preferencesWindow, win.isVisible {
@@ -302,7 +315,7 @@ extension MenuBarManager: NSWindowDelegate {
                !km.isPopupAlertPresented,
                !popupOwnsKeySheet,
                NSApp.keyWindow == nil || !(NSApp.keyWindow is PopupPanel) {
-                km.dismissPopup()
+                km.dismissPopup(restorePreviousApplication: false)
              }
          }
      }

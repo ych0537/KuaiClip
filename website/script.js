@@ -1,6 +1,6 @@
 const common = {
   zh: {
-    navFeatures: "功能", navPrivacy: "隐私", navDownload: "下载", nativeBadge: "0.7 · 为 macOS 原生打造",
+    navFeatures: "功能", navPrivacy: "隐私", navDownload: "下载", nativeBadge: "0.8 · 为 macOS 原生打造",
     headline: "让复制粘贴<br><span>快一点。</span>", lead: "在菜单栏中搜索、固定并快速粘贴剪贴板历史。轻巧、原生，重要内容留在你的 Mac 上。",
     downloadButton: "免费下载", sourceButton: "查看源代码 ↗", requirements: "适用于 macOS 14 Sonoma 及更高版本 · MIT 开源",
     shortcutHint: "双击左 Command，随时呼出", trustNative: "原生 Swift", trustNativeSub: "不是 Electron",
@@ -13,6 +13,8 @@ const common = {
     jsonTitle: "JSON 一键整形", jsonText: "自动识别有效 JSON，一键格式化、复制并保存到剪贴板历史。",
     themeTitle: "六套柔和配色", themeText: "白色、浅蓝、薄荷绿、暖米色、淡紫与黑色主题，在右上角一键循环切换。",
     previewTitle: "清晰紧凑的预览", previewText: "更高效的列表布局、单行序号与放大图片缩略图，让窗口空间真正用于内容。",
+    ocrTitle: "本机图片识别", ocrText: "使用 Apple Vision 在本机提取复制图片中的文字，不上传原图。",
+    screenshotTitle: "截图与标注", screenshotText: "截取区域、窗口或全屏，添加图形、箭头、画笔、马赛克、文字和编号，再保存或复制。",
     privacyEyebrow: "隐私不是附加功能", privacyTitle: "你的剪贴板，<br>留在你的 Mac。",
     privacyText: "历史数据存储在本机，不上传遥测或剪贴板内容。AI 润色仅在你主动点击时连接服务商，API 密钥由 macOS 钥匙串保护。",
     privacyLink: "阅读隐私说明 ↗", privacyOne: "无自动遥测上传", privacyTwo: "本地剪贴板历史",
@@ -20,7 +22,7 @@ const common = {
     downloadText: "免费下载。原生、轻巧、开源。"
   },
   ja: {
-    navFeatures: "機能", navPrivacy: "プライバシー", navDownload: "ダウンロード", nativeBadge: "0.7 · macOS のためのネイティブ設計",
+    navFeatures: "機能", navPrivacy: "プライバシー", navDownload: "ダウンロード", nativeBadge: "0.8 · macOS のためのネイティブ設計",
     headline: "コピー＆ペーストを<br><span>もっと速く。</span>", lead: "メニューバーから履歴を検索、ピン留め、すぐにペースト。軽量でネイティブ。大切なデータは Mac の中に。",
     downloadButton: "無料でダウンロード", sourceButton: "ソースを見る ↗", requirements: "macOS 14 Sonoma 以降 · MIT オープンソース",
     shortcutHint: "左 Command を2回押して表示", trustNative: "Native Swift", trustNativeSub: "Electron 不使用",
@@ -33,6 +35,8 @@ const common = {
     jsonTitle: "JSON をワンクリック整形", jsonText: "有効な JSON を認識し、整形・コピーして履歴にも保存します。",
     themeTitle: "6つのやさしい配色", themeText: "ホワイト、スカイ、ミント、サンド、ラベンダー、ダークを順番に切り替えられます。",
     previewTitle: "見やすくコンパクト", previewText: "効率的なリスト、折り返さない番号、大きな画像サムネイルで内容を見やすくしました。",
+    ocrTitle: "ローカル画像OCR", ocrText: "Apple Visionでコピー画像の文字を端末内処理のまま抽出し、画像をアップロードしません。",
+    screenshotTitle: "スクリーンショットと注釈", screenshotText: "範囲・ウィンドウ・全画面を撮影し、図形、矢印、手描き、モザイク、文字、番号を追加して保存またはコピーできます。",
     privacyEyebrow: "プライバシーは基本機能", privacyTitle: "クリップボードは、<br>あなたの Mac に。",
     privacyText: "履歴はローカル保存。テレメトリや内容を自動送信しません。AIは操作した時だけ接続し、APIキーはキーチェーンで保護します。",
     privacyLink: "プライバシーの詳細 ↗", privacyOne: "自動テレメトリなし", privacyTwo: "ローカル履歴",
@@ -40,7 +44,7 @@ const common = {
     downloadText: "無料、ネイティブ、オープンソース。"
   },
   en: {
-    navFeatures: "Features", navPrivacy: "Privacy", navDownload: "Download", nativeBadge: "0.7 · Native for macOS",
+    navFeatures: "Features", navPrivacy: "Privacy", navDownload: "Download", nativeBadge: "0.8 · Native for macOS",
     headline: "Copy and paste.<br><span>Only faster.</span>", lead: "Search, pin, and instantly paste your clipboard history from the menu bar. Lightweight, native, and designed to keep important data on your Mac.",
     downloadButton: "Download free", sourceButton: "View source ↗", requirements: "Requires macOS 14 Sonoma or later · MIT open source",
     shortcutHint: "Double-tap Left Command, anytime", trustNative: "Native Swift", trustNativeSub: "No Electron",
@@ -53,6 +57,8 @@ const common = {
     jsonTitle: "One-click JSON formatting", jsonText: "Recognize valid JSON, pretty-print it, copy it, and keep the formatted result in history.",
     themeTitle: "Six gentle color themes", themeText: "Cycle through White, Sky, Mint, Sand, Lavender, and Dark from the popup.",
     previewTitle: "Clear, compact previews", previewText: "A denser list, single-line numbering, and larger image thumbnails make better use of the window.",
+    ocrTitle: "On-device image OCR", ocrText: "Extract text from copied images locally with Apple Vision, without uploading the image.",
+    screenshotTitle: "Capture and annotate", screenshotText: "Capture a region, window, or full screen; add shapes, arrows, freehand marks, mosaic, text, and numbered callouts, then save or copy.",
     privacyEyebrow: "Privacy is not an add-on", privacyTitle: "Your clipboard stays<br>on your Mac.",
     privacyText: "History is stored locally with no telemetry or clipboard uploads. AI connects only when you ask, and API keys are protected by macOS Keychain.",
     privacyLink: "Read the privacy details ↗", privacyOne: "No automatic telemetry", privacyTwo: "Local clipboard history",

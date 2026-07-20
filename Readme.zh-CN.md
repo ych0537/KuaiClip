@@ -28,6 +28,8 @@
 
 **KuaiClip** 是一款基于 SwiftUI 与 AppKit 开发的原生 macOS 菜单栏剪贴板管理器，支持搜索、复制、直接粘贴、固定、隐藏、图片预览和 AI 职场文本润色。
 
+![浅色主题下的 KuaiClip 剪贴板历史](website/assets/popup-light-0.8.png)
+
 - **系统要求**：macOS 14 Sonoma 或更高版本
 - **界面语言**：English / 日本語 / 简体中文
 - **本地存储**：剪贴板历史和使用次数保存在本机 `UserDefaults`
@@ -44,8 +46,9 @@
 - 使用 OpenAI、Gemini 或 DeepSeek 润色中文、英文和日文职场文本
 - 在“关于”页面显示本机累计使用次数，便于用户主动填写问卷
 - 支持区域、窗口和全屏截图，并可添加矩形、圆形、直线、箭头、画笔、马赛克、文字和编号标注
+- 使用 Apple Vision 在本机识别复制图片中的文字，无需上传图片
 
-![KuaiClip 0.5 主窗口](docs/images/manual-basic.png)
+![KuaiClip 0.8 主窗口](website/assets/popup-light-0.8.png)
 
 ### 安装
 
@@ -80,6 +83,8 @@
 4. 点击“复制”会将PNG写入系统剪贴板，并添加到KuaiClip历史记录。
 
 首次截图时，macOS会请求“屏幕录制”权限。
+
+![带标注工具的 KuaiClip 0.8 截图编辑器](docs/images/screenshot-editor-0.8.png)
 
 ### AI 润色
 
@@ -119,7 +124,7 @@ git clone https://github.com/ych0537/KuaiClip.git
 cd KuaiClip
 bash scripts/test.sh
 swift build -c release
-BUILD_DIR=.build/release VERSION=0.5 bash scripts/package.sh
+BUILD_DIR=.build/release VERSION=0.8 bash scripts/package.sh
 open KuaiClip.app
 ```
 

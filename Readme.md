@@ -28,6 +28,8 @@
 
 **KuaiClip** is a lightweight, native macOS clipboard manager built with SwiftUI and AppKit. It lives in the menu bar and lets you search, copy, paste, pin, and manage your clipboard history — all from the keyboard.
 
+![KuaiClip clipboard history in the light theme](website/assets/popup-light-0.8.png)
+
 - **Target OS**: macOS 14 Sonoma or later
 - **Architecture**: SwiftUI + AppKit (`NSStatusBar`, `NSPanel`, Carbon `HotKey`, `CGEvent`)
 - **Storage**: `UserDefaults` (persists across restarts)
@@ -53,6 +55,7 @@
 - 🐼 **Selectable app icons** — switch the app and menu bar icon between six monochrome mascots
 - 📊 **Private local usage counters** — count popup opens, polish-window opens, and polish runs on this Mac; copy the totals into an optional survey without automatic telemetry
 - 📸 **Screenshot capture and annotation** — capture a region, window, or full screen; add shapes, arrows, freehand marks, mosaic, text, and numbered callouts
+- 🔤 **Local image OCR** — extract text from copied images on-device with Apple Vision, without uploading the image
 
 ### Quick Manual
 
@@ -106,6 +109,8 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 5. Click **Copy** to place the PNG on the system clipboard and add it to KuaiClip history.
 
 The screenshot shortcut can be changed in **Preferences → Shortcuts**. macOS requests **Screen Recording** permission the first time screen capture is used.
+
+![KuaiClip 0.8 screenshot editor with annotation tools](docs/images/screenshot-editor-0.8.png)
 
 ### Installation
 
