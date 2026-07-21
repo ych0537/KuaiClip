@@ -131,7 +131,7 @@ struct PopupView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 10).stroke(theme.border, lineWidth: 0.5)
         }
-        .padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 4)
+        .padding(.horizontal, 5).padding(.top, 5).padding(.bottom, 2)
     }
 
     private var themeToggle: some View {
@@ -229,7 +229,7 @@ struct PopupView: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 12).stroke(theme.border, lineWidth: 0.5)
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 5)
             .onChange(of: keyboardScrollRequest) { _, _ in
                 withAnimation {
                     proxy.scrollTo(selectedIndex, anchor: .center)
@@ -272,7 +272,7 @@ struct PopupView: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 5)
         .padding(.vertical, 7)
     }
 

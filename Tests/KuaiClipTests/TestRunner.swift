@@ -25,7 +25,7 @@ struct TestRunner {
             }
             try await textPolishRejectsOversizedInput()
             try ollamaDisablesThinking()
-            try codexAzureConfigurationReadsOnlyNonSensitiveFields()
+            try expect(AIModel.appleIntelligence.displayName == "Apple Intelligence", "Apple Intelligence model name")
             try expect(AIModel.deepSeekFlash.displayName == "deepseek-v4-flash", "AI model picker should show only the model ID")
             print("All KuaiClip tests passed")
         } catch {
@@ -87,23 +87,6 @@ struct TestRunner {
         try expect(json?["think"] as? Bool == false, "Ollama requests should disable thinking")
         try expect(json?["stream"] as? Bool == false, "Ollama requests should disable streaming")
         try expect(json?["model"] as? String == "qwen3:1.7b", "Ollama requests should use the selected model")
-    }
-
-    private static func codexAzureConfigurationReadsOnlyNonSensitiveFields() throws {
-        let config = TextPolishService.parseCodexAzureConfiguration("""
-        model = "gpt-5.4"
-
-        [model_providers.azure]
-        name = "Azure OpenAI"
-        base_url = "https://example.openai.azure.com/openai"
-        wire_api = "responses"
-        env_key = "AZURE_OPENAI_API_KEY"
-
-        [model_providers.other]
-        model = "must-not-be-read"
-        """)
-        try expect(config?.baseURL == "https://example.openai.azure.com/openai", "Codex Azure base URL")
-        try expect(config?.model == "gpt-5.4", "Codex Azure model")
     }
 
     @MainActor

@@ -19,6 +19,9 @@ enum L10n {
         "General": "通用", "Shortcuts": "快捷键", "About": "关于",
         "AI Polish": "AI 润色", "AI Providers": "AI 服务商",
         "AI provider": "AI 服务商", "API key": "API Key", "Save API Key": "保存 API Key",
+        "Apple Intelligence is ready.": "Apple Intelligence 已就绪。",
+        "Apple Intelligence is unavailable on this Mac.": "这台 Mac 上的 Apple Intelligence 不可用。",
+        "Apple Intelligence runs on device and does not require an API key.": "Apple Intelligence 在设备端运行，不需要 API Key。",
         "Ollama model": "Ollama 模型", "Refresh Ollama models": "刷新 Ollama 模型",
         "No local models found": "未找到本地模型", "Cannot connect to local Ollama.": "无法连接本地 Ollama。",
         "Ollama runs locally and does not require an API key.": "Ollama 在本机运行，不需要 API Key。",
@@ -31,9 +34,6 @@ enum L10n {
         "The API key for this provider is missing.": "尚未设置此服务商的 API Key。",
         "The AI returned an unreadable response.": "AI 返回了无法读取的结果。",
         "The AI request failed.": "AI 请求失败。", "Behavior": "行为", "Data": "数据",
-        "Azure endpoint": "Azure Endpoint", "Model / deployment": "模型 / 部署名称",
-        "Import from Codex config": "从 Codex 配置导入",
-        "The Azure OpenAI configuration is invalid.": "Azure OpenAI 配置无效。",
         "Max history": "最大历史记录", "Unpinned items kept (10–100)": "保留的未固定项目（10–100）",
         "Clipboard polling": "剪贴板检查间隔", "Launch at login": "登录时启动",
         "Strip formatting by default": "默认移除格式", "Language": "语言",
@@ -103,11 +103,9 @@ enum L10n {
     static var aiKeyMissing: String { text("The API key for this provider is missing.", "このプロバイダーのAPIキーが設定されていません。") }
     static var aiInvalidResponse: String { text("The AI returned an unreadable response.", "AIから読み取れない応答が返されました。") }
     static var aiRequestFailed: String { text("The AI request failed.", "AIへのリクエストに失敗しました。") }
-    static var azureEndpoint: String { text("Azure endpoint", "Azureエンドポイント", "Azure Endpoint") }
-    static var azureDeployment: String { text("Model / deployment", "モデル / デプロイ名", "模型 / 部署名称") }
-    static var importCodexAzureConfig: String { text("Import from Codex config", "Codex設定から読み込む", "从 Codex 配置导入") }
-    static var azureAPIKeyPlaceholder: String { "Azure API Key" }
-    static var azureConfigurationInvalid: String { text("The Azure OpenAI configuration is invalid.", "Azure OpenAIの設定が無効です。", "Azure OpenAI 配置无效。") }
+    static var appleIntelligenceReady: String { text("Apple Intelligence is ready.", "Apple Intelligenceを使用できます。") }
+    static var appleIntelligenceUnavailable: String { text("Apple Intelligence is unavailable on this Mac.", "このMacではApple Intelligenceを使用できません。") }
+    static var appleIntelligencePrivacy: String { text("Apple Intelligence runs on device and does not require an API key.", "Apple Intelligenceはデバイス上で動作し、APIキーは不要です。") }
     static func polishTextTooLong(_ limit: Int) -> String {
         text(
             "This text is too long to polish. The limit is \(limit.formatted()) characters.",

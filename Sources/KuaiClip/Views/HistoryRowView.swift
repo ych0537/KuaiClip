@@ -4,6 +4,7 @@ import SwiftUI
 /// A single row in the clipboard history list
 struct HistoryRowView: View {
     private static let thumbnailSize: CGFloat = 76
+    private static let contentFontSize: CGFloat = 13
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
@@ -29,7 +30,7 @@ struct HistoryRowView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             Text(shortcutLabel)
-                .font(theme.uiFont(size: 12, weight: .medium))
+                .font(theme.uiFont(size: 13, weight: .medium))
                 .foregroundColor(theme.secondaryForeground)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
@@ -43,16 +44,16 @@ struct HistoryRowView: View {
                 HStack(spacing: 4) {
                     if item.isPinned {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 7))
+                            .font(.system(size: 8.4))
                             .foregroundColor(isSelected ? theme.foreground.opacity(0.7) : .orange)
                     }
                     if item.isContentHidden {
                         Image(systemName: "eye.slash.fill")
-                            .font(.system(size: 7))
+                            .font(.system(size: 8.4))
                             .foregroundColor(isSelected ? theme.foreground.opacity(0.5) : .secondary)
                     }
                     Text(rowDisplayText)
-                        .font(theme.uiFont(size: 12))
+                        .font(theme.uiFont(size: Self.contentFontSize))
                         .lineLimit(2)
                         .foregroundColor(theme.foreground)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,13 +71,13 @@ struct HistoryRowView: View {
 
             HStack(spacing: 6) {
                 Text(item.timeAgo)
-                    .font(theme.uiFont(size: 9))
+                    .font(theme.uiFont(size: 10.8))
                     .foregroundColor(isSelected ? theme.foreground.opacity(0.5) : theme.secondaryForeground.opacity(0.6))
                     .fixedSize()
 
                 if item.isPinned {
                     Image(systemName: item.isContentHidden ? "eye" : "eye.slash")
-                        .font(.system(size: 10))
+                        .font(.system(size: 12))
                         .foregroundColor(isSelected ? theme.foreground.opacity(0.7) : theme.secondaryForeground.opacity(0.5))
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
@@ -86,7 +87,7 @@ struct HistoryRowView: View {
                 if shouldShowPolishButton {
                     Button { onPolish() } label: {
                         Image(systemName: "wand.and.stars")
-                            .font(.system(size: 10))
+                            .font(.system(size: 12))
                             .foregroundColor(isSelected ? theme.foreground : theme.accent)
                             .frame(width: 20, height: 20)
                     }
@@ -97,7 +98,7 @@ struct HistoryRowView: View {
                 if isJSON, !item.isContentHidden {
                     Button { onFormatJSON() } label: {
                         Image(systemName: "curlybraces")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(isSelected ? theme.foreground : theme.accent)
                             .frame(width: 20, height: 20)
                     }
@@ -113,7 +114,7 @@ struct HistoryRowView: View {
                                 .frame(width: 20, height: 20)
                         } else {
                             Image(systemName: "text.viewfinder")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(isSelected ? theme.foreground : theme.accent)
                                 .frame(width: 20, height: 20)
                         }
@@ -126,7 +127,7 @@ struct HistoryRowView: View {
                 if isSelected {
                     Button { onDelete() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 14.4))
                             .foregroundColor(theme.foreground.opacity(0.6))
                     }.buttonStyle(.plain)
                 }
@@ -172,7 +173,7 @@ struct HistoryRowView: View {
         .popover(isPresented: $showTooltip, arrowEdge: .trailing) {
             ScrollView {
                 Text(item.content)
-                    .font(theme.uiFont(size: 12))
+                    .font(theme.uiFont(size: Self.contentFontSize))
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -198,7 +199,7 @@ struct HistoryRowView: View {
     }
 
     private var tooltipSize: CGSize {
-        let font = NSFont.systemFont(ofSize: 12)
+        let font = NSFont.systemFont(ofSize: Self.contentFontSize)
         let maxTextWidth: CGFloat = 400
         let bounds = (item.content as NSString).boundingRect(
             with: NSSize(width: maxTextWidth, height: .greatestFiniteMagnitude),
@@ -225,7 +226,7 @@ struct HistoryRowView: View {
             isTextTruncated = false
             return
         }
-        let font = NSFont.systemFont(ofSize: 12)
+        let font = NSFont.systemFont(ofSize: Self.contentFontSize)
         let bounds = (rowDisplayText as NSString).boundingRect(
             with: NSSize(width: width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],

@@ -6,8 +6,8 @@ struct AISettingsView: View {
     }
 
     private enum Provider: String, CaseIterable, Identifiable {
+        case appleIntelligence = "apple-intelligence"
         case openAI = "openai"
-        case azureOpenAI = "azure-openai"
         case gemini
         case deepSeek = "deepseek"
         case ollama
@@ -15,8 +15,8 @@ struct AISettingsView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
+            case .appleIntelligence: return "Apple Intelligence"
             case .openAI: return "OpenAI"
-            case .azureOpenAI: return "Azure OpenAI"
             case .gemini: return "Gemini"
             case .deepSeek: return "DeepSeek"
             case .ollama: return "Ollama"
@@ -24,12 +24,16 @@ struct AISettingsView: View {
         }
         var placeholder: String {
             switch self {
+            case .appleIntelligence: return ""
             case .openAI: return "sk-proj-…"
-            case .azureOpenAI: return L10n.azureAPIKeyPlaceholder
             case .gemini: return "AIza…"
             case .deepSeek: return "sk-…"
             case .ollama: return ""
             }
+        }
+
+        var requiresAPIKey: Bool {
+            self != .appleIntelligence && self != .ollama
         }
     }
 
@@ -38,9 +42,6 @@ struct AISettingsView: View {
     @State private var apiKey = ""
     @State private var hasStoredKey = false
     @State private var keyOperationStatus: KeyOperationStatus?
-    @AppStorage("azureOpenAIEndpoint") private var azureEndpoint = ""
-    @AppStorage("azureOpenAIDeployment") private var azureDeployment = ""
-    @AppStorage("didImportCodexAzureConfig") private var didImportCodexAzureConfig = false
     @AppStorage("ollamaModel") private var ollamaModel = ""
     @State private var ollamaModels: [String] = []
     @State private var isLoadingOllamaModels = false
@@ -63,37 +64,11 @@ struct AISettingsView: View {
                     .fixedSize()
                 }
 
-                if provider != .ollama {
+                if provider.requiresAPIKey {
                     settingsRow(L10n.apiKey) {
                         SecureField("", text: $apiKey, prompt: Text(provider.placeholder))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
-                    }
-                }
-
-                if provider == .azureOpenAI {
-                    settingsRow(L10n.azureEndpoint) {
-                        TextField(
-                            "",
-                            text: $azureEndpoint,
-                            prompt: Text("https://example.openai.azure.com/openai/v1/")
-                        )
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
-                    }
-                    settingsRow(L10n.azureDeployment) {
-                        TextField("", text: $azureDeployment, prompt: Text("gpt-4o"))
-                            .labelsHidden()
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    HStack {
-                        Spacer()
-                            .frame(width: 161)
-                        Button(L10n.importCodexAzureConfig) {
-                            importCodexAzureConfiguration(overwrite: true)
-                        }
-                        .buttonStyle(.link)
-                        Spacer()
                     }
                 }
 
@@ -128,7 +103,7 @@ struct AISettingsView: View {
                 }
             }
 
-            if provider != .ollama {
+            if provider.requiresAPIKey {
                 Section {
                 HStack(spacing: 12) {
                     Button(L10n.saveAPIKey) {
@@ -157,7 +132,7 @@ struct AISettingsView: View {
                 }
                 Text(L10n.apiKeyPrivacy).font(.caption).foregroundStyle(.secondary)
                 }
-            } else {
+            } else if provider == .ollama {
                 Section {
                     Label(TextPolishService.ollamaEndpoint, systemImage: "desktopcomputer")
                         .foregroundStyle(.secondary)
@@ -167,6 +142,21 @@ struct AISettingsView: View {
                         Text(L10n.ollamaLocalPrivacy).font(.caption).foregroundStyle(.secondary)
                     }
                 }
+            } else {
+                Section {
+                    Label(
+                        TextPolishService.isAppleIntelligenceAvailable
+                            ? L10n.appleIntelligenceReady
+                            : L10n.appleIntelligenceUnavailable,
+                        systemImage: TextPolishService.isAppleIntelligenceAvailable
+                            ? "checkmark.circle.fill"
+                            : "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(TextPolishService.isAppleIntelligenceAvailable ? .green : .orange)
+                    Text(L10n.appleIntelligencePrivacy)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -174,12 +164,10 @@ struct AISettingsView: View {
         .background(theme.background)
         .onAppear {
             loadKey()
-            if provider == .azureOpenAI { importCodexAzureConfiguration() }
             if provider == .ollama { Task { await loadOllamaModels() } }
         }
         .onChange(of: providerValue) { _, _ in
             loadKey()
-            if provider == .azureOpenAI { importCodexAzureConfiguration() }
             if provider == .ollama { Task { await loadOllamaModels() } }
         }
     }
@@ -200,18 +188,6 @@ struct AISettingsView: View {
         apiKey = AIKeychain.read(provider.rawValue)
         hasStoredKey = !apiKey.isEmpty
         keyOperationStatus = nil
-    }
-
-    private func importCodexAzureConfiguration(overwrite: Bool = false) {
-        guard overwrite || !didImportCodexAzureConfig else { return }
-        guard let config = TextPolishService.codexAzureConfiguration() else { return }
-        if overwrite || azureEndpoint.isEmpty {
-            azureEndpoint = config.baseURL
-        }
-        if overwrite || azureDeployment.isEmpty {
-            azureDeployment = config.model
-        }
-        didImportCodexAzureConfig = true
     }
 
     @MainActor

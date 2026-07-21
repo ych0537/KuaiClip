@@ -1,9 +1,10 @@
 import Foundation
+import FoundationModels
 
 enum AIModel: String, CaseIterable, Identifiable {
+    case appleIntelligence = "Apple Intelligence"
     case openAIMini = "gpt-5.4-mini"
     case openAI = "gpt-5.4"
-    case azureOpenAI = "Azure OpenAI"
     case geminiFlash = "gemini-3.5-flash"
     case deepSeekFlash = "deepseek-v4-flash"
     case deepSeekPro = "deepseek-v4-pro"
@@ -11,13 +12,13 @@ enum AIModel: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
     var provider: String {
-        if self == .azureOpenAI { return "Azure OpenAI" }
+        if self == .appleIntelligence { return "Apple Intelligence" }
         if self == .ollama { return "Ollama" }
         if rawValue.hasPrefix("gemini") { return "Gemini" }
         if rawValue.hasPrefix("deepseek") { return "DeepSeek" }
         return "OpenAI"
     }
-    var keyAccount: String { self == .azureOpenAI ? "azure-openai" : provider.lowercased() }
+    var keyAccount: String { provider.lowercased() }
     var displayName: String {
         if self == .ollama {
             return UserDefaults.standard.string(forKey: "ollamaModel") ?? rawValue
@@ -27,10 +28,11 @@ enum AIModel: String, CaseIterable, Identifiable {
 }
 
 enum TextPolishError: LocalizedError {
-    case missingKey, textTooLong(Int), invalidResponse(String)
+    case missingKey, appleIntelligenceUnavailable, textTooLong(Int), invalidResponse(String)
     var errorDescription: String? {
         switch self {
         case .missingKey: return L10n.aiKeyMissing
+        case .appleIntelligenceUnavailable: return L10n.appleIntelligenceUnavailable
         case .textTooLong(let limit): return L10n.polishTextTooLong(limit)
         case .invalidResponse(let message): return message
         }
@@ -41,21 +43,15 @@ struct TextPolishService {
     static let maximumCharacterCount = 20_000
     static let ollamaEndpoint = "http://127.0.0.1:11434"
 
-    struct CodexAzureConfiguration: Equatable {
-        let baseURL: String
-        let model: String
-    }
-
     static func availableModels() -> [AIModel] {
         AIModel.allCases.filter {
+            if $0 == .appleIntelligence {
+                return isAppleIntelligenceAvailable
+            }
             if $0 == .ollama {
                 return !(UserDefaults.standard.string(forKey: "ollamaModel") ?? "").isEmpty
             }
             guard !AIKeychain.read($0.keyAccount).isEmpty else { return false }
-            if $0 == .azureOpenAI {
-                return !azureSetting("azureOpenAIEndpoint").isEmpty
-                    && !azureSetting("azureOpenAIDeployment").isEmpty
-            }
             return true
         }
     }
@@ -70,6 +66,12 @@ struct TextPolishService {
         TEXT:
         \(text)
         """
+        if model == .appleIntelligence {
+            if #available(macOS 26.0, *) {
+                return try await callAppleIntelligence(text)
+            }
+            throw TextPolishError.appleIntelligenceUnavailable
+        }
         if model == .ollama {
             let ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? ""
             guard !ollamaModel.isEmpty else {
@@ -80,10 +82,40 @@ struct TextPolishService {
         let key = AIKeychain.read(model.keyAccount)
         guard !key.isEmpty else { throw TextPolishError.missingKey }
         switch model.provider {
-        case "Azure OpenAI": return try await callAzureOpenAI(prompt, key: key)
         case "OpenAI": return try await callOpenAI(prompt, model: model.rawValue, key: key)
         case "DeepSeek": return try await callDeepSeek(prompt, model: model.rawValue, key: key)
         default: return try await callGemini(prompt, model: model.rawValue, key: key)
+        }
+    }
+
+    static var isAppleIntelligenceAvailable: Bool {
+        if #available(macOS 26.0, *) {
+            return SystemLanguageModel.default.isAvailable
+        }
+        return false
+    }
+
+    @available(macOS 26.0, *)
+    private static func callAppleIntelligence(_ input: String) async throws -> String {
+        let model = SystemLanguageModel.default
+        guard model.isAvailable else {
+            throw TextPolishError.appleIntelligenceUnavailable
+        }
+        let session = LanguageModelSession(
+            model: model,
+            instructions: """
+            You are a professional copy editor for Chinese, English, and Japanese workplace writing.
+            Rewrite the user's text so it is natural, concise, courteous, and professional.
+            Always respond in the same language as the user's text. Never translate it.
+            Preserve names, facts, dates, URLs, formatting, and intent.
+            Return only the polished text without commentary or quotation marks.
+            """
+        )
+        do {
+            let response = try await session.respond(to: input)
+            return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            throw TextPolishError.invalidResponse(error.localizedDescription)
         }
     }
 
@@ -120,83 +152,6 @@ struct TextPolishService {
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         throw TextPolishError.invalidResponse(L10n.aiInvalidResponse)
-    }
-
-    private static func callAzureOpenAI(_ input: String, key: String) async throws -> String {
-        let endpoint = azureSetting("azureOpenAIEndpoint")
-        let deployment = azureSetting("azureOpenAIDeployment")
-        return try await callAzureResponses(input, key: key, endpoint: endpoint, model: deployment)
-    }
-
-    private static func callAzureResponses(
-        _ input: String,
-        key: String,
-        endpoint: String,
-        model: String
-    ) async throws -> String {
-        let base = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard !model.isEmpty, let url = URL(string: base + "/responses") else {
-            throw TextPolishError.invalidResponse(L10n.azureConfigurationInvalid)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(key, forHTTPHeaderField: "api-key")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "model": model,
-            "input": input,
-        ])
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response, data: data)
-        return try responseText(from: data)
-    }
-
-    static func codexAzureConfiguration() -> CodexAzureConfiguration? {
-        let url = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".codex/config.toml")
-        guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return nil }
-        return parseCodexAzureConfiguration(contents)
-    }
-
-    static func parseCodexAzureConfiguration(_ contents: String) -> CodexAzureConfiguration? {
-        var currentSection: String?
-        var values: [String: String] = [:]
-
-        for rawLine in contents.split(whereSeparator: \.isNewline) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.hasPrefix("[") {
-                currentSection = line
-                continue
-            }
-            guard !line.hasPrefix("#"),
-                  let separator = line.firstIndex(of: "=") else { continue }
-            let key = line[..<separator].trimmingCharacters(in: .whitespaces)
-            let isTopLevelModel = currentSection == nil && key == "model"
-            let isAzureProviderValue = currentSection == "[model_providers.azure]"
-                && key == "base_url"
-            guard isTopLevelModel || isAzureProviderValue else { continue }
-            var value = line[line.index(after: separator)...]
-                .trimmingCharacters(in: .whitespaces)
-            if let comment = value.firstIndex(of: "#") {
-                value = value[..<comment].trimmingCharacters(in: .whitespaces)
-            }
-            if value.count >= 2, value.first == "\"", value.last == "\"" {
-                value.removeFirst()
-                value.removeLast()
-            }
-            values[key] = value
-        }
-
-        let baseURL = values["base_url"] ?? ""
-        let model = values["model"] ?? ""
-        guard !baseURL.isEmpty || !model.isEmpty else { return nil }
-        return CodexAzureConfiguration(baseURL: baseURL, model: model)
-    }
-
-    private static func azureSetting(_ key: String) -> String {
-        UserDefaults.standard.string(forKey: key)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private static func callOpenAI(_ input: String, model: String, key: String) async throws -> String {
