@@ -66,7 +66,7 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 1. Copy text, links, or other content normally. Each copy appears in the history.
 2. Open the popup with **double-tap Left ⌘** or the fallback shortcut **⇧⌘C**.
 3. Select an item with `↑` / `↓` or the mouse.
-4. Press `Enter` to copy it, then paste with `⌘V`. To paste directly into the previous app, press `⌥Enter` instead.
+4. Press `Enter` to paste the selected item directly into the previous app.
 
 ![Basic workflow: open the clipboard history and select an item](docs/images/manual-basic.png)
 
@@ -84,7 +84,7 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 1. Pin the item first.
 2. Click the crossed-eye button on the right, or right-click and choose **Hide Content**.
 3. The popup replaces the content with dots. Click the eye button to reveal it again.
-4. Direct paste (`⌥Enter`) removes a hidden item after use so it does not remain in history.
+4. Direct paste (`Enter` or `⌥Enter`) removes a hidden item after use so it does not remain in history.
 
 ![A hidden pinned item is masked with dots](docs/images/manual-hidden.png)
 
@@ -148,8 +148,8 @@ open KuaiClip.app
 | Search / filter | Type in the search field |
 | Navigate list | `↑` / `↓` arrow keys |
 | Select item | Hover mouse over item |
-| Copy selected item | `↩` Enter / Click / `⌘1-9` (unpinned) / `⌘A-J` (pinned) |
-| Copy & Paste directly | `⌥↩` / ⌥Click / `⌥1-9` (unpinned) / `⌥A-J` (pinned) |
+| Copy selected item | Click / `⌘1-9` (unpinned) / `⌘A-J` (pinned) |
+| Copy & Paste directly | `↩` Enter / `⌥↩` / ⌥Click / `⌥1-9` (unpinned) / `⌥A-J` (pinned) |
 | Paste without formatting | `⌥⇧↩` / ⌥⇧Click / `⌥⇧1-9` (unpinned) / `⌥⇧A-J` (pinned) |
 | Delete selected item | `⌥⌫` |
 | Pin / Unpin item | `⌥P` |

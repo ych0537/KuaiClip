@@ -33,6 +33,10 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
 
     var menuBarImage: NSImage? {
         guard let image = image(named: "\(rawValue)-menubar") else { return nil }
+        // Menu bar assets are stored as 36 px Retina templates and displayed at
+        // 18 pt. Setting the logical size explicitly prevents AppKit from
+        // treating the backing pixels as points and resampling them softly.
+        image.size = NSSize(width: 18, height: 18)
         image.isTemplate = true
         return image
     }

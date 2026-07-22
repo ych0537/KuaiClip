@@ -492,7 +492,7 @@ struct PopupKeyboardHandler: ViewModifier {
                 } else if modifiers.contains(.option) {
                     handleCopyAndPaste()
                 } else if modifiers.isEmpty || modifiers == .numericPad {
-                    handleCopy()
+                    handleCopyAndPaste()
                 }
                 return nil
 

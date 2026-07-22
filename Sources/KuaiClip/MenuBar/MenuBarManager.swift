@@ -18,6 +18,13 @@ final class MenuBarManager: NSObject {
     private var isPopupVisible: Bool = false
     private var isPopupAlertPresented: Bool = false
 
+    /// Application that was active immediately before the popup opened.
+    /// PasteService captures this before dismissing the popup so it can wait
+    /// for focus restoration instead of sending Command-V back to KuaiClip.
+    var pasteTargetApplication: NSRunningApplication? {
+        previouslyActiveApplication
+    }
+
     private override init() {
         super.init()
      }
