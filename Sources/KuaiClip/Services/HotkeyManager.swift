@@ -2,11 +2,22 @@ import Foundation
 import AppKit
 import Carbon
 
-/// Manages global keyboard shortcuts. Supports two modes:
-/// 1. Double-tap Left Command (needs Accessibility)
-/// 2. Custom Carbon hotkey (works without permissions)
+/// Manages global keyboard shortcuts. Supports left/right Command double-tap
+/// and a custom Carbon hotkey.
 @MainActor
 final class HotkeyManager {
+    enum CommandKeySide: String, CaseIterable {
+        case left
+        case right
+
+        var keyCode: UInt16 {
+            switch self {
+            case .left: UInt16(kVK_Command)
+            case .right: UInt16(kVK_RightCommand)
+            }
+        }
+    }
+
     static let shared = HotkeyManager()
 
     private var hotkeyRef: EventHotKeyRef?
@@ -14,8 +25,8 @@ final class HotkeyManager {
     private var hotkeyID = EventHotKeyID(signature: 0x44_58_43_42, id: 1)
     private var screenshotHotkeyID = EventHotKeyID(signature: 0x44_58_43_42, id: 2)
     private var eventHandlerRef: EventHandlerRef?
-    private var globalMonitor: Any?
-    private var localMonitor: Any?
+    private var commandEventTap: CFMachPort?
+    private var commandEventTapSource: CFRunLoopSource?
 
     // Carbon hotkey state
     private(set) var currentKeyCode: UInt32 = UInt32(kVK_ANSI_C)
@@ -31,8 +42,8 @@ final class HotkeyManager {
     var onHotkeyPressed: (() -> Void)?
     var onScreenshotHotkeyPressed: (() -> Void)?
 
-    /// Whether Accessibility permissions are granted
-    var isAccessibilityGranted: Bool { AXIsProcessTrusted() }
+    /// Whether Input Monitoring permission is granted for Command-key events.
+    var isInputMonitoringGranted: Bool { CGPreflightListenEventAccess() }
 
     /// User preference for double-tap mode
     var useDoubleTap: Bool {
@@ -43,9 +54,22 @@ final class HotkeyManager {
         }
     }
 
+    var doubleTapSide: CommandKeySide {
+        get {
+            let value = UserDefaults.standard.string(forKey: "hotkey_doubleTapSide") ?? CommandKeySide.left.rawValue
+            return CommandKeySide(rawValue: value) ?? .left
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: "hotkey_doubleTapSide")
+            lastCmdPressTime = .distantPast
+            cmdIsDown = false
+            register()
+        }
+    }
+
     /// Effective double-tap mode (respects permissions)
     var effectiveDoubleTap: Bool {
-        useDoubleTap && isAccessibilityGranted
+        useDoubleTap && isInputMonitoringGranted
     }
 
     private init() {
@@ -95,48 +119,77 @@ final class HotkeyManager {
 
     var hotkeyDescription: String {
         if useDoubleTap {
-            if isAccessibilityGranted { return L10n.doubleTapCommand }
-            else { return "\(L10n.doubleTapCommand) (\(L10n.needsPermission))" }
+            let description = doubleTapDescription
+            if isInputMonitoringGranted { return description }
+            else { return "\(description) (\(L10n.needsPermission))" }
         }
         return carbonDescription(keyCode: currentKeyCode, modifiers: currentModifiers)
     }
 
     var effectiveHotkeyDescription: String {
-        if effectiveDoubleTap { return L10n.doubleTapCommand }
+        if effectiveDoubleTap { return doubleTapDescription }
         return carbonDescription(keyCode: currentKeyCode, modifiers: currentModifiers)
     }
 
-    // MARK: - Double-tap via Global Monitor
-
-    private func registerDoubleTap() {
-        // Global monitor for when app is in background
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handleFlagsChanged(event)
-        }
-        // Local monitor for when app is frontmost
-        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            self?.handleFlagsChanged(event)
-            return event
-        }
-        NSLog("[KuaiClip] Double-tap Cmd registered (Accessibility: %@)",
-              isAccessibilityGranted ? "yes" : "no")
+    private var doubleTapDescription: String {
+        doubleTapSide == .left ? L10n.doubleTapLeftCommand : L10n.doubleTapRightCommand
     }
 
-    private nonisolated func handleFlagsChanged(_ event: NSEvent) {
-        let cmd = event.modifierFlags.contains(.command)
-        Task { @MainActor in
-            let km = HotkeyManager.shared
-            let wasDown = km.cmdIsDown
-            km.cmdIsDown = cmd
-            if cmd, !wasDown { km.handleCmdPress() }
+    // MARK: - Double-tap via CGEventTap
+
+    private func registerDoubleTap() {
+        let eventMask = CGEventMask(1) << CGEventType.flagsChanged.rawValue
+        let callback: CGEventTapCallBack = { _, type, event, userInfo in
+            guard let userInfo else { return Unmanaged.passUnretained(event) }
+            let manager = Unmanaged<HotkeyManager>.fromOpaque(userInfo).takeUnretainedValue()
+
+            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                if let tap = manager.commandEventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+                return Unmanaged.passUnretained(event)
+            }
+
+            guard type == .flagsChanged else { return Unmanaged.passUnretained(event) }
+            let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            let commandIsDown = event.flags.contains(.maskCommand)
+            Task { @MainActor in
+                manager.handleFlagsChanged(keyCode: keyCode, commandIsDown: commandIsDown)
+            }
+            return Unmanaged.passUnretained(event)
         }
+
+        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: eventMask,
+            callback: callback,
+            userInfo: userInfo
+        ) else {
+            NSLog("[KuaiClip] Unable to create Command event tap")
+            return
+        }
+
+        commandEventTap = tap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        commandEventTapSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        NSLog("[KuaiClip] Double-tap %@ Cmd registered (Input Monitoring: yes)", doubleTapSide.rawValue)
+    }
+
+    private func handleFlagsChanged(keyCode: UInt16, commandIsDown: Bool) {
+        guard keyCode == doubleTapSide.keyCode else { return }
+        let wasDown = cmdIsDown
+        cmdIsDown = commandIsDown
+        if commandIsDown, !wasDown { handleCmdPress() }
     }
 
     private func handleCmdPress() {
         let now = Date()
         let elapsed = now.timeIntervalSince(lastCmdPressTime)
         if elapsed < doubleTapWindow {
-            NSLog("[KuaiClip] Double-tap Cmd! (%.0fms)", elapsed * 1000)
+            NSLog("[KuaiClip] Double-tap %@ Cmd! (%.0fms)", doubleTapSide.rawValue, elapsed * 1000)
             lastCmdPressTime = .distantPast
             DispatchQueue.main.async { [weak self] in self?.onHotkeyPressed?() }
         } else {
@@ -236,8 +289,14 @@ final class HotkeyManager {
         if let r = hotkeyRef { UnregisterEventHotKey(r); hotkeyRef = nil }
         if let r = screenshotHotkeyRef { UnregisterEventHotKey(r); screenshotHotkeyRef = nil }
         if let r = eventHandlerRef { RemoveEventHandler(r); eventHandlerRef = nil }
-        if let m = globalMonitor { NSEvent.removeMonitor(m); globalMonitor = nil }
-        if let m = localMonitor { NSEvent.removeMonitor(m); localMonitor = nil }
+        if let source = commandEventTapSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+            commandEventTapSource = nil
+        }
+        if let tap = commandEventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            commandEventTap = nil
+        }
     }
 
     private func reRegister() { register() }

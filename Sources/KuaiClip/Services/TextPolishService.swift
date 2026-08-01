@@ -52,11 +52,12 @@ enum TranslationLanguage: String, CaseIterable, Identifiable {
 }
 
 enum TextPolishError: LocalizedError {
-    case missingKey, appleIntelligenceUnavailable, textTooLong(Int), translationTextTooLong(Int), invalidResponse(String)
+    case missingKey, appleIntelligenceUnavailable, licenseRequired, textTooLong(Int), translationTextTooLong(Int), invalidResponse(String)
     var errorDescription: String? {
         switch self {
         case .missingKey: return L10n.aiKeyMissing
         case .appleIntelligenceUnavailable: return L10n.appleIntelligenceUnavailable
+        case .licenseRequired: return L10n.premiumRequiredDetail
         case .textTooLong(let limit): return L10n.polishTextTooLong(limit)
         case .translationTextTooLong(let limit): return L10n.translationTextTooLong(limit)
         case .invalidResponse(let message): return message
@@ -97,6 +98,7 @@ struct TextPolishService {
     }
 
     static func polish(_ text: String, using model: AIModel) async throws -> String {
+        guard await hasPremiumAccess else { throw TextPolishError.licenseRequired }
         guard text.count <= maximumCharacterCount else {
             throw TextPolishError.textTooLong(maximumCharacterCount)
         }
@@ -133,6 +135,7 @@ struct TextPolishService {
         to language: TranslationLanguage,
         using model: AIModel
     ) async throws -> String {
+        guard await hasPremiumAccess else { throw TextPolishError.licenseRequired }
         guard text.count <= maximumCharacterCount else {
             throw TextPolishError.translationTextTooLong(maximumCharacterCount)
         }
@@ -169,6 +172,12 @@ struct TextPolishService {
             return SystemLanguageModel.default.isAvailable
         }
         return false
+    }
+
+    private static var hasPremiumAccess: Bool {
+        get async {
+            await MainActor.run { PurchaseManager.shared.accessState.hasFullAccess }
+        }
     }
 
     @available(macOS 26.0, *)

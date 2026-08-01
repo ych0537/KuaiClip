@@ -81,6 +81,32 @@ enum L10n {
     static var general: String { text("General", "一般") }
     static var shortcuts: String { text("Shortcuts", "ショートカット") }
     static var about: String { text("About", "情報") }
+    static var license: String { text("License", "ライセンス", "许可") }
+    static var accessStatus: String { text("Access status", "利用状況", "使用状态") }
+    static var trialAvailable: String { text("7-day trial available", "7日間トライアルを利用できます", "可开始 7 天试用") }
+    static var trialExpired: String { text("Trial expired", "トライアル終了", "试用已结束") }
+    static var lifetimeUnlocked: String { text("Lifetime unlocked", "永久版を購入済み", "已永久解锁") }
+    static var startSevenDayTrial: String { text("Start 7-Day Free Trial", "7日間無料トライアルを開始", "开始 7 天免费试用") }
+    static var restorePurchases: String { text("Restore Purchases", "購入を復元", "恢复购买") }
+    static var buyLifetimeUnavailable: String { text("Lifetime purchase unavailable", "永久版を購入できません", "暂时无法购买永久版") }
+    static var purchaseVerificationFailed: String { text("The purchase could not be verified.", "購入を確認できませんでした。", "无法验证购买。") }
+    static var purchasePending: String { text("The purchase is pending approval.", "購入は承認待ちです。", "购买正在等待批准。") }
+    static var purchaseFailed: String { text("The purchase failed.", "購入に失敗しました。", "购买失败。") }
+    static var premiumRequired: String { text("Trial or purchase required", "トライアルまたは購入が必要です", "需要试用或购买") }
+    static var premiumRequiredDetail: String {
+        text(
+            "Start the 7-day trial or unlock KuaiClip permanently in Preferences → About.",
+            "設定 → 情報から7日間トライアルを開始するか、永久版を購入してください。",
+            "请在设置 → 关于中开始 7 天试用或永久解锁 KuaiClip。"
+        )
+    }
+    static func buyLifetime(_ price: String) -> String {
+        text("Unlock Lifetime — \(price)", "永久版を購入 — \(price)", "永久解锁 — \(price)")
+    }
+    static func trialEnds(_ date: Date) -> String {
+        let formatted = date.formatted(date: .abbreviated, time: .shortened)
+        return text("Trial ends \(formatted)", "トライアル終了: \(formatted)", "试用结束：\(formatted)")
+    }
     static var aiPolish: String { text("AI Polish", "AI文章校正") }
     static var aiProviders: String { text("AI Providers", "AIプロバイダー") }
     static var aiBehavior: String { text("AI Behavior", "AIの動作") }
@@ -163,14 +189,28 @@ enum L10n {
     static var clearAll: String { text("Clear All History", "すべての履歴を消去") }
     static var popupActivation: String { text("Popup Activation", "ポップアップ起動") }
     static var activationMode: String { text("Activation mode", "起動方法") }
-    static var doubleTap: String { text("Double-tap Left ⌘", "左⌘をダブルタップ") }
+    static var doubleTap: String { doubleTapLeft }
+    static var doubleTapLeft: String { text("Double-tap Left ⌘", "左⌘をダブルタップ", "双击左侧 ⌘") }
+    static var doubleTapRight: String { text("Double-tap Right ⌘", "右⌘をダブルタップ", "双击右侧 ⌘") }
+    static var doubleTapLeftCompact: String { text("Left ⌘ ×2", "左⌘ ×2", "左侧 ⌘ ×2") }
+    static var doubleTapRightCompact: String { text("Right ⌘ ×2", "右⌘ ×2", "右侧 ⌘ ×2") }
     static var custom: String { text("Custom shortcut", "カスタムショートカット") }
     static var currentShortcut: String { text("Current shortcut", "現在のショートカット") }
     static var record: String { text("Record", "記録") }
     static var reset: String { text("Reset", "リセット") }
     static var pressKeys: String { text("Press keys…", "キーを押してください…") }
     static var withinPopup: String { text("Popup Actions", "ポップアップ内の操作") }
-    static var accWarning: String { text("Accessibility permission is required; fallback shortcut is active.", "アクセシビリティ権限が必要です。現在は代替ショートカットを使用しています。") }
+    static var accWarning: String { text("Input Monitoring permission is required; fallback shortcut is active.", "入力監視の権限が必要です。現在は代替ショートカットを使用しています。", "需要输入监控权限；当前正在使用备用快捷键。") }
+    static var grantAccessibilityAccess: String {
+        text("Grant Input Monitoring Access…", "入力監視を許可…", "授予输入监控权限…")
+    }
+    static var accessibilityGrantSteps: String {
+        text(
+            "In System Settings, enable KuaiClip under Privacy & Security → Input Monitoring, then return here.",
+            "システム設定の「プライバシーとセキュリティ」→「入力監視」でKuaiClipをオンにしてから、ここに戻ってください。",
+            "请在系统设置的“隐私与安全性 → 输入监控”中开启 KuaiClip，然后返回这里。"
+        )
+    }
     static var search: String { text("Search…", "検索…") }
     static var noHistory: String { text("No clipboard history yet", "クリップボード履歴はまだありません") }
     static var noMatches: String { text("No matching items", "一致する項目がありません") }
@@ -195,7 +235,9 @@ enum L10n {
     static var empty: String { text("(empty)", "（空）") }
     static var image: String { text("Image", "画像") }
     static var dataContent: String { text("Data", "データ") }
-    static var doubleTapCommand: String { text("Double-tap Left ⌘", "左⌘をダブルタップ") }
+    static var doubleTapCommand: String { doubleTapLeftCommand }
+    static var doubleTapLeftCommand: String { text("Double-tap Left ⌘", "左⌘をダブルタップ", "双击左侧 ⌘") }
+    static var doubleTapRightCommand: String { text("Double-tap Right ⌘", "右⌘をダブルタップ", "双击右侧 ⌘") }
     static var needsPermission: String { text("needs permission", "権限が必要") }
 
     static var copySelected: String { text("Copy selected", "選択項目をコピー") }
@@ -210,9 +252,9 @@ enum L10n {
     static var accessibilityTitle: String { text("Enable Double-Tap ⌘?", "⌘ ダブルタップを有効にしますか？") }
     static var accessibilityBody: String {
         text(
-            "Double-tap Left Command needs Accessibility permission.\n\nCurrent shortcut: ⇧⌘C (works immediately)\n\nGrant permission in System Settings → Privacy & Security → Accessibility, then restart KuaiClip.\n\nYou can also select a custom shortcut in Preferences (⌘,).",
-            "左 Command のダブルタップにはアクセシビリティ権限が必要です。\n\n現在のショートカット：⇧⌘C（すぐに使用できます）\n\nシステム設定 → プライバシーとセキュリティ → アクセシビリティで権限を許可し、KuaiClip を再起動してください。\n\n設定（⌘,）でカスタムショートカットを選ぶこともできます。",
-            "双击左侧 Command 需要辅助功能权限。\n\n当前快捷键：⇧⌘C（可立即使用）\n\n请前往系统设置 → 隐私与安全性 → 辅助功能授予权限，然后重启 KuaiClip。\n\n也可以在设置（⌘,）中选择自定义快捷键。"
+            "Double-tapping a Command key needs Input Monitoring permission.\n\nCurrent shortcut: ⇧⌘C (works immediately)\n\nGrant permission in System Settings → Privacy & Security → Input Monitoring, then return to KuaiClip.\n\nYou can choose the left or right Command key, or a custom shortcut, in Preferences (⌘,).",
+            "Commandキーのダブルタップには入力監視の権限が必要です。\n\n現在のショートカット：⇧⌘C（すぐに使用できます）\n\nシステム設定 → プライバシーとセキュリティ → 入力監視で権限を許可し、KuaiClipに戻ってください。\n\n設定（⌘,）で左右のCommandキーまたはカスタムショートカットを選択できます。",
+            "双击 Command 键需要输入监控权限。\n\n当前快捷键：⇧⌘C（可立即使用）\n\n请前往系统设置 → 隐私与安全性 → 输入监控授予权限，然后返回 KuaiClip。\n\n可以在设置（⌘,）中选择左侧、右侧 Command 或自定义快捷键。"
         )
     }
     static var openSystemSettings: String { text("Open System Settings", "システム設定を開く") }
@@ -251,6 +293,8 @@ enum L10n {
     static var captureFullScreen: String { text("Capture Full Screen", "全画面を撮影", "全屏截图") }
     static var screenshotEditor: String { text("Screenshot Editor", "スクリーンショット編集", "截图编辑") }
     static var screenshotFailed: String { text("Screenshot Failed", "スクリーンショットに失敗しました", "截图失败") }
+    static var screenshotNoDisplay: String { text("No display is available for capture.", "撮影できるディスプレイがありません。", "没有可供截图的显示器。") }
+    static var screenshotNoWindow: String { text("No window is available for capture.", "撮影できるウィンドウがありません。", "没有可供截图的窗口。") }
     static var download: String { text("Download", "ダウンロード", "下载") }
     static var copy: String { text("Copy", "コピー", "复制") }
     static var undo: String { text("Undo", "取り消す", "撤销") }

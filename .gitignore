@@ -1,17 +1,50 @@
 # Xcode
 DerivedData/
 build/
-*.xcworkspace
 *.xcuserstate
 xcuserdata/
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+*.ipa
+
+# Keep shared Xcode projects/workspaces in source control. Ignore only local
+# user data and generated dependency workspaces.
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
 
 # Swift Package
 .build/
+.swiftpm/
 Packages/
-*.xcodeproj
 
 # macOS App
 *.app
+*.pkg
+*.dmg
+
+# Apple signing and App Store credentials
+*.p12
+*.p8
+*.cer
+*.csr
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+AuthKey_*.p8
+
+# Local signing, StoreKit, and account configuration. These files must be
+# created locally or supplied through CI secrets, never committed.
+*.storekit
+*.local.xcconfig
+Config/Private/
+fastlane/.env*
+fastlane/report.xml
+fastlane/Preview.html
+.env
+.env.*
+!.env.example
 
 # macOS
 .DS_Store
