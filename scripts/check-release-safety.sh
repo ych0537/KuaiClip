@@ -25,7 +25,8 @@ check_paths "staged changes" "$staged"
 scan_output="$(mktemp -t kuaiclip-secret-scan.XXXXXX)"
 trap 'rm -f "$scan_output"' EXIT
 if git grep -I -n -E 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|BEGIN CERTIFICATE' -- . \
-    ':(exclude)docs/*' ':(exclude)Readme*' >"$scan_output" 2>/dev/null; then
+    ':(exclude)docs/*' ':(exclude)Readme*' \
+    ':(exclude)scripts/check-release-safety.sh' >"$scan_output" 2>/dev/null; then
     echo "ERROR: A tracked file appears to contain a private key or certificate:" >&2
     cat "$scan_output" >&2
     exit 1
