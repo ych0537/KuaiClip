@@ -52,7 +52,7 @@
 - ✨ **Content-aware AI workplace polish** — natural-language detection hides the action for commands, URLs, code, and structured data
 - `{ }` **JSON format & copy** — pretty-print valid JSON, copy it, and keep the formatted result in history
 - 🖼 **Large image thumbnails** — preview copied images in clear 76 × 76 thumbnails
-- 🐼 **Selectable app icons** — switch the app and menu bar icon between six monochrome mascots
+- 🐿️ **Selectable animal icons** — switch between solid-color squirrel, fox, and panda app icons with matching menu bar artwork
 - 📊 **Private local usage counters** — count popup opens, polish-window opens, and polish runs on this Mac; copy the totals into an optional survey without automatic telemetry
 - 📸 **Screenshot capture and annotation** — capture a region, window, or full screen; add shapes, arrows, freehand marks, mosaic, text, and numbered callouts
 - 🔤 **Local image OCR** — extract text from copied images on-device with Apple Vision, without uploading the image
@@ -90,13 +90,13 @@ KuaiClip remembers content copied on the Mac. Instead of returning to the origin
 
 > Hidden mode prevents shoulder-surfing in the popup; it is not encryption. Clipboard data is stored locally in macOS `UserDefaults`, so use the clear commands when sensitive history is no longer needed.
 
-#### 4. AI polish: improve workplace messages
+#### 4. AI polish and translation
 
 1. Open Preferences with `⌘,`, select **AI Polish**, and enter an API key for OpenAI, Gemini, or DeepSeek. Keys are stored in macOS Keychain.
 2. Open the clipboard popup and click the wand button beside a text item. Image items and hidden items do not expose this action.
-3. Choose any model whose provider has a configured key, then click the send button.
-4. KuaiClip detects Chinese, English, or Japanese automatically, preserves the original language and meaning, and returns only the professionally polished text.
-5. Copy the result with the copy button. AI polish accepts up to **20,000 characters** per request; regular clipboard history is not subject to this limit.
+3. Choose a default model in Preferences. The polish window remembers it and falls back safely if that model becomes unavailable.
+4. Select **Polish** to improve workplace writing while preserving its language and meaning, or select **Translate** and choose one of the common target languages. The target language is remembered for next time.
+5. Copy the result with the copy button. AI processing accepts up to **20,000 characters** per request; regular clipboard history is not subject to this limit.
 
 > AI polish sends the selected text to the provider you choose and may incur provider API charges. KuaiClip does not send clipboard content automatically.
 
@@ -175,7 +175,7 @@ open KuaiClip.app
 |---------|---------|
 | **General** | Max history items (10–100), Polling interval (0.25–2.0 s), Launch at login, Strip formatting by default, Language (English / 日本語 / 简体中文) |
 | **Shortcuts** | Clipboard popup activation, configurable screenshot shortcut, duplicate-shortcut validation, popup shortcut reference |
-| **AI Polish** | OpenAI, Gemini, and DeepSeek API keys stored in macOS Keychain |
+| **AI Polish** | Default model, polish and translation, local Ollama / Apple Intelligence, and provider API keys stored in macOS Keychain |
 | **About** | App icon, version, local usage totals, copy-for-survey, and reset controls |
 
 ![Local usage counters in the About tab](docs/images/preferences-about-usage.png)

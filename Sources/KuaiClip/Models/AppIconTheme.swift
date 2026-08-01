@@ -3,29 +3,33 @@ import Foundation
 
 enum AppIconTheme: String, CaseIterable, Identifiable {
     static let defaultsKey = "appIconTheme"
+    private static let squirrelDefaultMigrationKey = "didMigrateToSquirrelDefaultIcon"
 
-    case pandaTyping = "panda-typing"
-    case pandaBricks = "panda-bricks"
-    case sealBalloon = "seal-balloon"
-    case foxEnvelope = "fox-envelope"
-    case owlChecklist = "owl-checklist"
-    case otterTyping = "otter-typing"
+    case foxSolid = "fox-solid"
+    case squirrelSolid = "squirrel-solid"
+    case pandaSolid = "panda-solid"
 
     var id: String { rawValue }
 
     static var selected: AppIconTheme {
-        let value = UserDefaults.standard.string(forKey: defaultsKey) ?? pandaTyping.rawValue
-        return AppIconTheme(rawValue: value) ?? .pandaTyping
+        if !UserDefaults.standard.bool(forKey: squirrelDefaultMigrationKey) {
+            UserDefaults.standard.set(squirrelSolid.rawValue, forKey: defaultsKey)
+            UserDefaults.standard.set(true, forKey: squirrelDefaultMigrationKey)
+            return .squirrelSolid
+        }
+        let value = UserDefaults.standard.string(forKey: defaultsKey) ?? squirrelSolid.rawValue
+        guard let theme = AppIconTheme(rawValue: value) else {
+            UserDefaults.standard.set(squirrelSolid.rawValue, forKey: defaultsKey)
+            return .squirrelSolid
+        }
+        return theme
     }
 
     var title: String {
         switch self {
-        case .pandaTyping: return L10n.pandaTyping
-        case .pandaBricks: return L10n.pandaBricks
-        case .sealBalloon: return L10n.sealBalloon
-        case .foxEnvelope: return L10n.foxEnvelope
-        case .owlChecklist: return L10n.owlChecklist
-        case .otterTyping: return L10n.otterTyping
+        case .foxSolid: return L10n.foxSolid
+        case .squirrelSolid: return L10n.squirrelSolid
+        case .pandaSolid: return L10n.pandaSolid
         }
     }
 
@@ -33,11 +37,13 @@ enum AppIconTheme: String, CaseIterable, Identifiable {
 
     var menuBarImage: NSImage? {
         guard let image = image(named: "\(rawValue)-menubar") else { return nil }
-        // Menu bar assets are stored as 36 px Retina templates and displayed at
-        // 18 pt. Setting the logical size explicitly prevents AppKit from
+        // Menu bar assets are stored as Retina templates and displayed at
+        // 18 pt high. Setting the logical size explicitly prevents AppKit from
         // treating the backing pixels as points and resampling them softly.
-        image.size = NSSize(width: 18, height: 18)
-        image.isTemplate = true
+        image.size = self == .squirrelSolid
+            ? NSSize(width: 30, height: 18)
+            : NSSize(width: 18, height: 18)
+        image.isTemplate = self != .pandaSolid
         return image
     }
 

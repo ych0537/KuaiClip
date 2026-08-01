@@ -2,12 +2,21 @@ import AppKit
 import SwiftUI
 
 struct TextPolishView: View {
+    private enum Action: String, CaseIterable, Identifiable {
+        case polish, translate
+        var id: String { rawValue }
+        var title: String { self == .polish ? L10n.polishAction : L10n.translateAction }
+    }
+
     let source: String
     let onCopy: () -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage("appearanceMode") private var appearanceMode = "light"
     @AppStorage("appLanguage") private var appLanguage = "en"
+    @AppStorage(TextPolishService.defaultModelKey) private var defaultModelValue = ""
+    @AppStorage(TextPolishService.translationTargetLanguageKey) private var targetLanguageValue = TranslationLanguage.english.rawValue
     @State private var result = ""
+    @State private var action = Action.polish
     @State private var selectedModel: AIModel?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -15,11 +24,17 @@ struct TextPolishView: View {
     private var theme: AppTheme { AppTheme(appearanceMode) }
     private var models: [AIModel] { TextPolishService.availableModels() }
     private var isOverLimit: Bool { source.count > TextPolishService.maximumCharacterCount }
+    private var targetLanguage: Binding<TranslationLanguage> {
+        Binding(
+            get: { TranslationLanguage(rawValue: targetLanguageValue) ?? .english },
+            set: { targetLanguageValue = $0.rawValue }
+        )
+    }
 
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Text(L10n.polishText).font(.headline)
+                Text(action == .polish ? L10n.polishText : L10n.translateAction).font(.headline)
                 Spacer()
                 Button { dismiss() } label: { Image(systemName: "xmark.circle.fill") }.buttonStyle(.plain)
             }
@@ -27,7 +42,7 @@ struct TextPolishView: View {
             HStack {
                 if isOverLimit {
                     Label(
-                        L10n.polishTextTooLong(TextPolishService.maximumCharacterCount),
+                        limitMessage,
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .foregroundStyle(.red)
@@ -38,27 +53,49 @@ struct TextPolishView: View {
                     .foregroundStyle(isOverLimit ? .red : .secondary)
             }
             .font(.caption)
-            HStack {
-                Label(L10n.professionalPolish, systemImage: "wand.and.stars")
-                Spacer()
-                Picker(L10n.aiModel, selection: $selectedModel) {
-                    ForEach(models) { Text($0.displayName).tag(Optional($0)) }
-                }.frame(width: 250)
-                Button { runPolish() } label: {
-                    HStack(spacing: 6) {
-                        if isLoading { ProgressView().controlSize(.small) }
-                        Text(L10n.polishAction)
+            VStack(spacing: 10) {
+                HStack {
+                    Picker("", selection: $action) {
+                        ForEach(Action.allCases) { action in
+                            Text(action.title).tag(action)
+                        }
                     }
-                    .frame(minWidth: 72)
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
+                    .disabled(isLoading)
+                    if action == .translate {
+                        Picker(L10n.targetLanguage, selection: targetLanguage) {
+                            ForEach(TranslationLanguage.allCases) { language in
+                                Text(language.displayName).tag(language)
+                            }
+                        }
+                        .frame(width: 210)
+                        .disabled(isLoading)
+                    }
+                    Spacer()
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoading || selectedModel == nil || isOverLimit)
+                HStack {
+                    Spacer()
+                    Picker(L10n.aiModel, selection: $selectedModel) {
+                        ForEach(models) { Text($0.displayName).tag(Optional($0)) }
+                    }.frame(width: 250)
+                    Button { runPolish() } label: {
+                        HStack(spacing: 6) {
+                            if isLoading { ProgressView().controlSize(.small) }
+                            Text(action.title)
+                        }
+                        .frame(minWidth: 72)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isLoading || selectedModel == nil || isOverLimit)
+                }
             }
             if models.isEmpty {
                 Text(L10n.configureAIKey).foregroundStyle(.orange).font(.caption)
             }
             ZStack(alignment: .bottomTrailing) {
-                textBox(result.isEmpty ? L10n.polishedResultPlaceholder : result)
+                textBox(result.isEmpty ? resultPlaceholder : result)
                     .foregroundStyle(result.isEmpty ? .secondary : theme.foreground)
                 if !result.isEmpty {
                     Button { copyResult() } label: { Image(systemName: "doc.on.doc") }
@@ -68,7 +105,16 @@ struct TextPolishView: View {
             if let errorMessage { Text(errorMessage).foregroundStyle(.red).font(.caption) }
         }
         .padding(20).frame(width: 650, height: 480).background(theme.background)
-        .onAppear { selectedModel = models.first }
+        .onAppear {
+            selectedModel = TextPolishService.defaultModel(
+                storedValue: defaultModelValue,
+                availableModels: models
+            )
+        }
+        .onChange(of: action) { _, _ in
+            result = ""
+            errorMessage = nil
+        }
     }
 
     private func textBox(_ text: String) -> some View {
@@ -79,13 +125,30 @@ struct TextPolishView: View {
 
     private func runPolish() {
         guard let selectedModel, !isOverLimit else { return }
-        UsageMetrics.shared.recordPolishRun()
+        if action == .polish { UsageMetrics.shared.recordPolishRun() }
         isLoading = true; errorMessage = nil
         Task {
-            do { result = try await TextPolishService.polish(source, using: selectedModel) }
+            do {
+                switch action {
+                case .polish:
+                    result = try await TextPolishService.polish(source, using: selectedModel)
+                case .translate:
+                    result = try await TextPolishService.translate(source, to: targetLanguage.wrappedValue, using: selectedModel)
+                }
+            }
             catch { errorMessage = error.localizedDescription }
             isLoading = false
         }
+    }
+
+    private var resultPlaceholder: String {
+        action == .polish ? L10n.polishedResultPlaceholder : L10n.translatedResultPlaceholder
+    }
+
+    private var limitMessage: String {
+        action == .polish
+            ? L10n.polishTextTooLong(TextPolishService.maximumCharacterCount)
+            : L10n.translationTextTooLong(TextPolishService.maximumCharacterCount)
     }
 
     private func copyResult() {

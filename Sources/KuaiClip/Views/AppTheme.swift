@@ -86,7 +86,7 @@ enum AppTheme: String, CaseIterable {
     }
 
     var divider: Color {
-        isDark ? .white.opacity(0.07) : foreground.opacity(0.075)
+        isDark ? .white.opacity(0.14) : foreground.opacity(0.20)
     }
 
     func uiFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {

@@ -18,6 +18,7 @@ enum L10n {
     private static let chineseTranslations: [String: String] = [
         "General": "通用", "Shortcuts": "快捷键", "About": "关于",
         "AI Polish": "AI 润色", "AI Providers": "AI 服务商",
+        "AI Behavior": "AI 行为", "Default model": "默认模型", "No available models": "没有可用模型",
         "AI provider": "AI 服务商", "API key": "API Key", "Save API Key": "保存 API Key",
         "Apple Intelligence is ready.": "Apple Intelligence 已就绪。",
         "Apple Intelligence is unavailable on this Mac.": "这台 Mac 上的 Apple Intelligence 不可用。",
@@ -29,6 +30,8 @@ enum L10n {
         "Save API Keys": "保存 API Key", "Saved securely in macOS Keychain": "已安全保存到 macOS 钥匙串",
         "Keys stay in macOS Keychain. Text is sent only to the provider selected when you polish it.": "Key 仅保存在 macOS 钥匙串。只有主动润色时，文本才会发送给所选服务商。",
         "Polish for work": "职场润色", "Professional polish": "职场润色", "AI model": "AI 模型",
+        "Translate": "翻译", "Target language": "目标语言",
+        "The translated result will appear here.": "翻译结果会显示在这里。",
         "Add an API key in Preferences → AI Polish first.": "请先在设置 → AI 润色中添加 API Key。",
         "The polished result will appear here.": "润色后的内容会显示在这里。",
         "The API key for this provider is missing.": "尚未设置此服务商的 API Key。",
@@ -37,9 +40,9 @@ enum L10n {
         "Max history": "最大历史记录", "Unpinned items kept (10–100)": "保留的未固定项目（10–100）",
         "Clipboard polling": "剪贴板检查间隔", "Launch at login": "登录时启动",
         "Strip formatting by default": "默认移除格式", "Language": "语言",
-        "App & Menu Bar Icon": "App 与菜单栏图标", "Typing Panda": "打字熊猫",
-        "Brick Panda": "搬砖熊猫", "Balloon Seal": "顶气球海豹", "Mail Fox": "邮件狐狸",
-        "Checklist Owl": "清单猫头鹰", "Typing Otter": "打字水獭", "History items": "历史项目",
+        "App & Menu Bar Icon": "App 与菜单栏图标",
+        "Solid Fox": "实心狐狸", "Flying Squirrel": "飞翔松鼠", "Solid Panda": "实心熊猫",
+        "History items": "历史项目",
         "Clear All History": "清空全部历史", "Popup Activation": "弹窗启动",
         "Activation mode": "启动方式", "Double-tap Left ⌘": "双击左侧 ⌘",
         "Custom shortcut": "自定义快捷键", "Current shortcut": "当前快捷键", "Record": "录制",
@@ -80,6 +83,9 @@ enum L10n {
     static var about: String { text("About", "情報") }
     static var aiPolish: String { text("AI Polish", "AI文章校正") }
     static var aiProviders: String { text("AI Providers", "AIプロバイダー") }
+    static var aiBehavior: String { text("AI Behavior", "AIの動作") }
+    static var defaultAIModel: String { text("Default model", "デフォルトモデル") }
+    static var noAvailableAIModels: String { text("No available models", "利用可能なモデルがありません") }
     static var aiProvider: String { text("AI provider", "AIプロバイダー") }
     static var apiKey: String { text("API key", "APIキー") }
     static var ollamaModel: String { text("Ollama model", "Ollamaモデル") }
@@ -96,6 +102,9 @@ enum L10n {
     static var polishText: String { text("Polish for work", "ビジネス文章を校正") }
     static var professionalPolish: String { text("Professional polish", "ビジネス文章校正") }
     static var polishAction: String { text("Polish", "校正する", "润色") }
+    static var translateAction: String { text("Translate", "翻訳する", "翻译") }
+    static var targetLanguage: String { text("Target language", "翻訳先の言語", "目标语言") }
+    static var translatedResultPlaceholder: String { text("The translated result will appear here.", "翻訳結果がここに表示されます。", "翻译结果会显示在这里。") }
     static var formatJSONAndCopy: String { text("Format JSON and copy", "JSONを整形してコピー", "格式化 JSON 并复制") }
     static var aiModel: String { text("AI model", "AIモデル") }
     static var configureAIKey: String { text("Add an API key in Preferences → AI Polish first.", "先に設定 → AI文章校正でAPIキーを追加してください。") }
@@ -106,11 +115,29 @@ enum L10n {
     static var appleIntelligenceReady: String { text("Apple Intelligence is ready.", "Apple Intelligenceを使用できます。") }
     static var appleIntelligenceUnavailable: String { text("Apple Intelligence is unavailable on this Mac.", "このMacではApple Intelligenceを使用できません。") }
     static var appleIntelligencePrivacy: String { text("Apple Intelligence runs on device and does not require an API key.", "Apple Intelligenceはデバイス上で動作し、APIキーは不要です。") }
+    static func translationLanguage(_ language: TranslationLanguage) -> String {
+        switch language {
+        case .simplifiedChinese: return text("Simplified Chinese", "簡体字中国語", "简体中文")
+        case .english: return text("English", "英語", "英语")
+        case .japanese: return text("Japanese", "日本語", "日语")
+        case .korean: return text("Korean", "韓国語", "韩语")
+        case .spanish: return text("Spanish", "スペイン語", "西班牙语")
+        case .french: return text("French", "フランス語", "法语")
+        case .german: return text("German", "ドイツ語", "德语")
+        }
+    }
     static func polishTextTooLong(_ limit: Int) -> String {
         text(
             "This text is too long to polish. The limit is \(limit.formatted()) characters.",
             "文章が長すぎます。校正できる上限は\(limit.formatted())文字です。",
             "文本过长，最多可润色 \(limit.formatted()) 个字符。"
+        )
+    }
+    static func translationTextTooLong(_ limit: Int) -> String {
+        text(
+            "This text is too long to translate. The limit is \(limit.formatted()) characters.",
+            "文章が長すぎます。翻訳できる上限は\(limit.formatted())文字です。",
+            "文本过长，最多可翻译 \(limit.formatted()) 个字符。"
         )
     }
     static func characterCount(_ count: Int, limit: Int) -> String {
@@ -129,12 +156,9 @@ enum L10n {
     static var stripFmt: String { text("Strip formatting by default", "デフォルトで書式なし貼り付け") }
     static var language: String { text("Language", "言語") }
     static var appIcon: String { text("App & Menu Bar Icon", "アプリとメニューバーのアイコン") }
-    static var pandaTyping: String { text("Typing Panda", "タイピングパンダ") }
-    static var pandaBricks: String { text("Brick Panda", "搬砖パンダ") }
-    static var sealBalloon: String { text("Balloon Seal", "風船アザラシ") }
-    static var foxEnvelope: String { text("Mail Fox", "メールキツネ") }
-    static var owlChecklist: String { text("Checklist Owl", "チェックフクロウ") }
-    static var otterTyping: String { text("Typing Otter", "タイピングカワウソ") }
+    static var foxSolid: String { text("Solid Fox", "ソリッドキツネ", "实心狐狸") }
+    static var squirrelSolid: String { text("Flying Squirrel", "ムササビ", "飞翔松鼠") }
+    static var pandaSolid: String { text("Solid Panda", "ソリッドパンダ", "实心熊猫") }
     static var historyItems: String { text("History items", "履歴項目") }
     static var clearAll: String { text("Clear All History", "すべての履歴を消去") }
     static var popupActivation: String { text("Popup Activation", "ポップアップ起動") }

@@ -19,7 +19,7 @@ struct PreferencesView: View {
     @AppStorage("screenshot_hotkey_modifiers") private var screenshotHotkeyModifiers: Int = 512 | 256
     @AppStorage("appLanguage") private var appLanguage: String = "en"
     @AppStorage("appearanceMode") private var appearanceMode: String = "light"
-    @AppStorage(AppIconTheme.defaultsKey) private var appIconTheme: String = AppIconTheme.pandaTyping.rawValue
+    @AppStorage(AppIconTheme.defaultsKey) private var appIconTheme: String = AppIconTheme.squirrelSolid.rawValue
 
     @State private var historyCount: Int = 0
     @State private var isRecording: Bool = false

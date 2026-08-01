@@ -24,9 +24,26 @@ struct TestRunner {
                 try imageEncodingPreservesOriginalDimensions()
             }
             try await textPolishRejectsOversizedInput()
+            try await translationRejectsOversizedInput()
             try ollamaDisablesThinking()
             try expect(AIModel.appleIntelligence.displayName == "Apple Intelligence", "Apple Intelligence model name")
             try expect(AIModel.deepSeekFlash.displayName == "deepseek-v4-flash", "AI model picker should show only the model ID")
+            try expect(TranslationLanguage.allCases.count == 7, "translation should offer the common target languages")
+            try expect(TranslationLanguage(rawValue: "ja") == .japanese, "saved translation language should be restored")
+            try expect(
+                TextPolishService.defaultModel(
+                    storedValue: AIModel.deepSeekFlash.rawValue,
+                    availableModels: [.openAIMini, .deepSeekFlash]
+                ) == .deepSeekFlash,
+                "configured default AI model should be selected"
+            )
+            try expect(
+                TextPolishService.defaultModel(
+                    storedValue: AIModel.geminiFlash.rawValue,
+                    availableModels: [.openAIMini, .deepSeekFlash]
+                ) == .openAIMini,
+                "unavailable default AI model should fall back to the first available model"
+            )
             print("All KuaiClip tests passed")
         } catch {
             fputs("Test failed: \(error)\n", stderr)
@@ -78,6 +95,18 @@ struct TestRunner {
             try expect(limit == TextPolishService.maximumCharacterCount, "polish limit should be reported")
         } catch {
             throw TestFailure.failed("expected textTooLong, got \(error)")
+        }
+    }
+
+    private static func translationRejectsOversizedInput() async throws {
+        let oversized = String(repeating: "a", count: TextPolishService.maximumCharacterCount + 1)
+        do {
+            _ = try await TextPolishService.translate(oversized, to: .japanese, using: .openAIMini)
+            throw TestFailure.failed("oversized translation request should be rejected")
+        } catch TextPolishError.translationTextTooLong(let limit) {
+            try expect(limit == TextPolishService.maximumCharacterCount, "translation limit should be reported")
+        } catch {
+            throw TestFailure.failed("expected translationTextTooLong, got \(error)")
         }
     }
 

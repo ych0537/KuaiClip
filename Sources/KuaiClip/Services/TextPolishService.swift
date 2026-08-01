@@ -27,13 +27,38 @@ enum AIModel: String, CaseIterable, Identifiable {
     }
 }
 
+enum TranslationLanguage: String, CaseIterable, Identifiable {
+    case simplifiedChinese = "zh-Hans"
+    case english = "en"
+    case japanese = "ja"
+    case korean = "ko"
+    case spanish = "es"
+    case french = "fr"
+    case german = "de"
+
+    var id: String { rawValue }
+    var promptName: String {
+        switch self {
+        case .simplifiedChinese: return "Simplified Chinese"
+        case .english: return "English"
+        case .japanese: return "Japanese"
+        case .korean: return "Korean"
+        case .spanish: return "Spanish"
+        case .french: return "French"
+        case .german: return "German"
+        }
+    }
+    var displayName: String { L10n.translationLanguage(self) }
+}
+
 enum TextPolishError: LocalizedError {
-    case missingKey, appleIntelligenceUnavailable, textTooLong(Int), invalidResponse(String)
+    case missingKey, appleIntelligenceUnavailable, textTooLong(Int), translationTextTooLong(Int), invalidResponse(String)
     var errorDescription: String? {
         switch self {
         case .missingKey: return L10n.aiKeyMissing
         case .appleIntelligenceUnavailable: return L10n.appleIntelligenceUnavailable
         case .textTooLong(let limit): return L10n.polishTextTooLong(limit)
+        case .translationTextTooLong(let limit): return L10n.translationTextTooLong(limit)
         case .invalidResponse(let message): return message
         }
     }
@@ -42,6 +67,8 @@ enum TextPolishError: LocalizedError {
 struct TextPolishService {
     static let maximumCharacterCount = 20_000
     static let ollamaEndpoint = "http://127.0.0.1:11434"
+    static let defaultModelKey = "defaultAIModel"
+    static let translationTargetLanguageKey = "translationTargetLanguage"
 
     static func availableModels() -> [AIModel] {
         AIModel.allCases.filter {
@@ -54,6 +81,19 @@ struct TextPolishService {
             guard !AIKeychain.read($0.keyAccount).isEmpty else { return false }
             return true
         }
+    }
+
+    static func defaultModel(
+        storedValue: String? = UserDefaults.standard.string(forKey: defaultModelKey),
+        availableModels: [AIModel]? = nil
+    ) -> AIModel? {
+        let models = availableModels ?? self.availableModels()
+        guard let storedValue,
+              let storedModel = AIModel(rawValue: storedValue),
+              models.contains(storedModel) else {
+            return models.first
+        }
+        return storedModel
     }
 
     static func polish(_ text: String, using model: AIModel) async throws -> String {
@@ -69,6 +109,42 @@ struct TextPolishService {
         if model == .appleIntelligence {
             if #available(macOS 26.0, *) {
                 return try await callAppleIntelligence(text)
+            }
+            throw TextPolishError.appleIntelligenceUnavailable
+        }
+        if model == .ollama {
+            let ollamaModel = UserDefaults.standard.string(forKey: "ollamaModel") ?? ""
+            guard !ollamaModel.isEmpty else {
+                throw TextPolishError.invalidResponse(L10n.noOllamaModels)
+            }
+            return try await callOllama(prompt, model: ollamaModel)
+        }
+        let key = AIKeychain.read(model.keyAccount)
+        guard !key.isEmpty else { throw TextPolishError.missingKey }
+        switch model.provider {
+        case "OpenAI": return try await callOpenAI(prompt, model: model.rawValue, key: key)
+        case "DeepSeek": return try await callDeepSeek(prompt, model: model.rawValue, key: key)
+        default: return try await callGemini(prompt, model: model.rawValue, key: key)
+        }
+    }
+
+    static func translate(
+        _ text: String,
+        to language: TranslationLanguage,
+        using model: AIModel
+    ) async throws -> String {
+        guard text.count <= maximumCharacterCount else {
+            throw TextPolishError.translationTextTooLong(maximumCharacterCount)
+        }
+        let prompt = """
+        Translate the following text into \(language.promptName). Preserve names, facts, dates, URLs, numbers, paragraph breaks, lists, and formatting. Make the translation natural and accurate. Return only the translated text without commentary or quotation marks.
+
+        TEXT:
+        \(text)
+        """
+        if model == .appleIntelligence {
+            if #available(macOS 26.0, *) {
+                return try await callAppleTranslation(text, language: language)
             }
             throw TextPolishError.appleIntelligenceUnavailable
         }
@@ -109,6 +185,32 @@ struct TextPolishService {
             Always respond in the same language as the user's text. Never translate it.
             Preserve names, facts, dates, URLs, formatting, and intent.
             Return only the polished text without commentary or quotation marks.
+            """
+        )
+        do {
+            let response = try await session.respond(to: input)
+            return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            throw TextPolishError.invalidResponse(error.localizedDescription)
+        }
+    }
+
+    @available(macOS 26.0, *)
+    private static func callAppleTranslation(
+        _ input: String,
+        language: TranslationLanguage
+    ) async throws -> String {
+        let model = SystemLanguageModel.default
+        guard model.isAvailable else {
+            throw TextPolishError.appleIntelligenceUnavailable
+        }
+        let session = LanguageModelSession(
+            model: model,
+            instructions: """
+            You are a professional translator. Translate the user's text into \(language.promptName).
+            Preserve names, facts, dates, URLs, numbers, paragraph breaks, lists, and formatting.
+            Make the translation natural and accurate.
+            Return only the translated text without commentary or quotation marks.
             """
         )
         do {

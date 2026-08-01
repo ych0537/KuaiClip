@@ -39,6 +39,7 @@ struct AISettingsView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode = "light"
     @AppStorage("aiSettingsProvider") private var providerValue = Provider.openAI.rawValue
+    @AppStorage(TextPolishService.defaultModelKey) private var defaultModelValue = ""
     @State private var apiKey = ""
     @State private var hasStoredKey = false
     @State private var keyOperationStatus: KeyOperationStatus?
@@ -49,9 +50,28 @@ struct AISettingsView: View {
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
     private var provider: Provider { Provider(rawValue: providerValue) ?? .openAI }
+    private var availableModels: [AIModel] { TextPolishService.availableModels() }
 
     var body: some View {
         Form {
+            Section(L10n.aiBehavior) {
+                settingsRow(L10n.defaultAIModel) {
+                    Picker("", selection: defaultModelSelection) {
+                        if availableModels.isEmpty {
+                            Text(L10n.noAvailableAIModels).tag("")
+                        } else {
+                            ForEach(availableModels) { model in
+                                Text(model.displayName).tag(model.rawValue)
+                            }
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                    .disabled(availableModels.isEmpty)
+                }
+            }
+
             Section(L10n.aiProviders) {
                 settingsRow(L10n.aiProvider) {
                     Picker("", selection: $providerValue) {
@@ -188,6 +208,18 @@ struct AISettingsView: View {
         apiKey = AIKeychain.read(provider.rawValue)
         hasStoredKey = !apiKey.isEmpty
         keyOperationStatus = nil
+    }
+
+    private var defaultModelSelection: Binding<String> {
+        Binding(
+            get: {
+                TextPolishService.defaultModel(
+                    storedValue: defaultModelValue,
+                    availableModels: availableModels
+                )?.rawValue ?? ""
+            },
+            set: { defaultModelValue = $0 }
+        )
     }
 
     @MainActor

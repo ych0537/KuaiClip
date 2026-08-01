@@ -5,6 +5,8 @@ import SwiftUI
 struct HistoryRowView: View {
     private static let thumbnailSize: CGFloat = 76
     private static let contentFontSize: CGFloat = 13
+    private static let shortcutColumnWidth: CGFloat = 16
+    private static let shortcutSpacing: CGFloat = 2
 
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
@@ -28,13 +30,13 @@ struct HistoryRowView: View {
     @State private var isTextTruncated: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .center, spacing: Self.shortcutSpacing) {
             Text(shortcutLabel)
                 .font(theme.uiFont(size: 13, weight: .medium))
                 .foregroundColor(theme.secondaryForeground)
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(width: 24, alignment: .leading)
+                .minimumScaleFactor(0.7)
+                .frame(width: Self.shortcutColumnWidth, alignment: .leading)
 
             if item.contentType == .image, !item.isContentHidden {
                 imageThumbnail
@@ -136,7 +138,10 @@ struct HistoryRowView: View {
         .padding(.horizontal, 2).padding(.vertical, 7)
         .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? theme.selectionBackground : Color.clear))
         .overlay(alignment: .bottom) {
-            Rectangle().fill(theme.divider).frame(height: 0.5).padding(.leading, 28)
+            Rectangle()
+                .fill(theme.divider)
+                .frame(height: 0.5)
+                .padding(.leading, Self.shortcutColumnWidth + Self.shortcutSpacing + 2)
         }
         .contextMenu {
             Button { onTogglePin() } label: {
