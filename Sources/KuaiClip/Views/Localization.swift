@@ -290,9 +290,20 @@ enum L10n {
     static var shortcutConflictMessage: String { text("The clipboard popup and screenshot shortcuts must be different.", "クリップボードとスクリーンショットには異なるショートカットを設定してください。", "剪贴板窗口与截图不能使用相同的快捷键。") }
     static var captureRegion: String { text("Capture Region", "範囲を撮影", "区域截图") }
     static var captureWindow: String { text("Capture Window", "ウィンドウを撮影", "窗口截图") }
+    static var windowSelectionHint: String { text("Move the pointer over a window and click · Esc to cancel", "ウィンドウにポインタを合わせてクリック · Escでキャンセル", "将光标移到窗口上并点击 · 按 Esc 取消") }
     static var captureFullScreen: String { text("Capture Full Screen", "全画面を撮影", "全屏截图") }
     static var screenshotEditor: String { text("Screenshot Editor", "スクリーンショット編集", "截图编辑") }
     static var screenshotFailed: String { text("Screenshot Failed", "スクリーンショットに失敗しました", "截图失败") }
+    static var screenCapturePermissionTitle: String {
+        text("Screen Recording Permission Required", "画面収録の権限が必要です", "需要屏幕录制权限")
+    }
+    static var screenCapturePermissionMessage: String {
+        text(
+            "Allow KuaiClip in System Settings → Privacy & Security → Screen & System Audio Recording, then try again. You may need to restart KuaiClip after granting access.",
+            "システム設定 → プライバシーとセキュリティ → 画面収録とシステムオーディオ録音で KuaiClip を許可してから、もう一度お試しください。許可後に KuaiClip の再起動が必要な場合があります。",
+            "请在系统设置 → 隐私与安全性 → 屏幕与系统音频录制中允许 KuaiClip，然后重试。授权后可能需要重新启动 KuaiClip。"
+        )
+    }
     static var screenshotNoDisplay: String { text("No display is available for capture.", "撮影できるディスプレイがありません。", "没有可供截图的显示器。") }
     static var screenshotNoWindow: String { text("No window is available for capture.", "撮影できるウィンドウがありません。", "没有可供截图的窗口。") }
     static var download: String { text("Download", "ダウンロード", "下载") }

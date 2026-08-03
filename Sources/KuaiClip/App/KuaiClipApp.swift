@@ -25,6 +25,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = icon
         }
 
+        // New installations launch at login by default. A persisted user choice
+        // still takes precedence over the registered default.
+        LoginItemManager.applyConfiguredValue()
+
         // Set up menu bar
         MenuBarManager.shared.setup()
 
@@ -59,6 +63,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         print("[KuaiClip] Application terminating")
         ClipboardMonitor.shared.stop()
         HotkeyManager.shared.unregister()
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        HotkeyManager.shared.reregisterIfPermissionChanged()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

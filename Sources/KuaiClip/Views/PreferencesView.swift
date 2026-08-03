@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import ServiceManagement
 import Carbon
 
 struct PreferencesView: View {
@@ -10,7 +9,7 @@ struct PreferencesView: View {
 
     @AppStorage("maxHistoryItems") private var maxHistoryItems: Int = HistoryStore.defaultUnpinnedItems
     @AppStorage("pollingInterval") private var pollingInterval: Double = 0.5
-    @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    @AppStorage(LoginItemManager.defaultsKey) private var launchAtLogin = LoginItemManager.defaultEnabled
     @AppStorage("stripFormattingByDefault") private var stripFormattingByDefault: Bool = false
     @AppStorage("hotkey_useDoubleTap") private var useDoubleTapCommand: Bool = true
     @AppStorage("hotkey_doubleTapSide") private var doubleTapSide: String = HotkeyManager.CommandKeySide.left.rawValue
@@ -135,7 +134,7 @@ struct PreferencesView: View {
                 Toggle(isOn: $launchAtLogin) {
                     settingLabel(L10n.launchAtLogin, icon: "power")
                 }
-                .onChange(of: launchAtLogin) { _, value in setLoginItem(enabled: value) }
+                .onChange(of: launchAtLogin) { _, value in LoginItemManager.setEnabled(value) }
 
                 Toggle(isOn: $stripFormattingByDefault) {
                     settingLabel(L10n.stripFmt, icon: "textformat")
@@ -567,19 +566,8 @@ struct PreferencesView: View {
         let granted = CGPreflightListenEventAccess()
         inputMonitoringGranted = granted
         if granted && useDoubleTapCommand {
-            HotkeyManager.shared.reregisterIfNeeded()
+            HotkeyManager.shared.reregisterIfPermissionChanged()
         }
     }
 
-    private func setLoginItem(enabled: Bool) {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            NSLog("[KuaiClip] Login item error: %@", error.localizedDescription)
-        }
-    }
 }

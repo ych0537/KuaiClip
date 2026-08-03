@@ -146,8 +146,14 @@ private enum Annotation {
 }
 
 @MainActor
-final class ScreenshotCanvasView: NSView {
-    var tool: AnnotationTool = .rectangle
+final class ScreenshotCanvasView: NSView, NSTextFieldDelegate {
+    var tool: AnnotationTool = .rectangle {
+        didSet {
+            if tool != .text {
+                commitInlineText()
+            }
+        }
+    }
     var onHistoryChanged: ((Bool) -> Void)?
 
     private let image: NSImage
@@ -156,6 +162,9 @@ final class ScreenshotCanvasView: NSView {
     private var working: Annotation?
     private var startPoint: NSPoint = .zero
     private var number = 1
+    private var inlineTextField: NSTextField?
+    private var inlineTextPoint: NSPoint?
+    private var isFinishingInlineText = false
 
     init(image: NSImage) {
         self.image = image
@@ -182,6 +191,7 @@ final class ScreenshotCanvasView: NSView {
         image.draw(in: imageRect, from: .zero, operation: .sourceOver, fraction: 1)
         for annotation in annotations { draw(annotation) }
         if let working { draw(working) }
+        drawInlineTextGuide()
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -192,7 +202,7 @@ final class ScreenshotCanvasView: NSView {
         case .pen, .mosaic:
             working = .stroke(tool, [point])
         case .text:
-            requestText(at: point)
+            beginInlineText(at: point)
         case .number:
             annotations.append(.number(number, point))
             number += 1
@@ -226,6 +236,7 @@ final class ScreenshotCanvasView: NSView {
     }
 
     func undo() {
+        commitInlineText()
         guard !annotations.isEmpty else { return }
         annotations.removeLast()
         number = annotations.reduce(1) { count, annotation in
@@ -235,12 +246,14 @@ final class ScreenshotCanvasView: NSView {
     }
 
     func clearAnnotations() {
+        cancelInlineText()
         annotations.removeAll()
         number = 1
         changed()
     }
 
     func renderedPNGData() -> Data? {
+        commitInlineText()
         let sourceRep = image.representations
             .compactMap { $0 as? NSBitmapImageRep }
             .max { $0.pixelsWide * $0.pixelsHigh < $1.pixelsWide * $1.pixelsHigh }
@@ -263,17 +276,105 @@ final class ScreenshotCanvasView: NSView {
         return rep.representation(using: .png, properties: [:])
     }
 
-    private func requestText(at point: NSPoint) {
-        let alert = NSAlert()
-        alert.messageText = L10n.enterText
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
-        alert.accessoryView = field
-        alert.addButton(withTitle: L10n.ok)
-        alert.addButton(withTitle: L10n.cancel)
-        if alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty {
-            annotations.append(.label(field.stringValue, point))
+    private func beginInlineText(at point: NSPoint) {
+        commitInlineText()
+
+        let height: CGFloat = 32
+        let origin = NSPoint(
+            x: min(max(point.x, imageRect.minX), imageRect.maxX - 80),
+            y: min(max(point.y - 4, imageRect.minY), imageRect.maxY - height)
+        )
+        let availableWidth = max(80, imageRect.maxX - origin.x)
+        let field = NSTextField(
+            frame: NSRect(
+                origin: origin,
+                size: NSSize(width: min(240, availableWidth), height: height)
+            )
+        )
+        field.delegate = self
+        field.font = .systemFont(ofSize: 22, weight: .semibold)
+        field.textColor = .systemRed
+        field.placeholderString = L10n.enterText
+        field.isBordered = false
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.maximumNumberOfLines = 1
+        field.lineBreakMode = .byClipping
+
+        inlineTextPoint = origin
+        inlineTextField = field
+        addSubview(field)
+        window?.makeFirstResponder(field)
+        needsDisplay = true
+    }
+
+    private func commitInlineText() {
+        guard !isFinishingInlineText,
+              let field = inlineTextField,
+              let point = inlineTextPoint else { return }
+        isFinishingInlineText = true
+        let text = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        inlineTextField = nil
+        inlineTextPoint = nil
+        field.delegate = nil
+        field.removeFromSuperview()
+        if !text.isEmpty {
+            annotations.append(.label(text, point))
             changed()
         }
+        isFinishingInlineText = false
+    }
+
+    private func cancelInlineText() {
+        guard let field = inlineTextField else { return }
+        isFinishingInlineText = true
+        inlineTextField = nil
+        inlineTextPoint = nil
+        field.delegate = nil
+        field.removeFromSuperview()
+        window?.makeFirstResponder(self)
+        isFinishingInlineText = false
+        needsDisplay = true
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        guard let field = notification.object as? NSTextField,
+              field === inlineTextField else { return }
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: field.font ?? NSFont.systemFont(ofSize: 22, weight: .semibold)
+        ]
+        // The field editor contains marked (IME composition) text that isn't
+        // always reflected in stringValue yet. Measure it and leave enough
+        // trailing room for the marked glyph and insertion caret.
+        let editingText = (field.currentEditor() as? NSTextView)?.string ?? field.stringValue
+        let measuredWidth = (editingText as NSString).size(withAttributes: attributes).width + 42
+        let maximumWidth = max(80, imageRect.maxX - field.frame.minX)
+        field.setFrameSize(
+            NSSize(width: min(max(120, measuredWidth), maximumWidth), height: field.frame.height)
+        )
+        needsDisplay = true
+    }
+
+    func control(
+        _ control: NSControl,
+        textView: NSTextView,
+        doCommandBy commandSelector: Selector
+    ) -> Bool {
+        if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+            commitInlineText()
+            window?.makeFirstResponder(self)
+            return true
+        }
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            cancelInlineText()
+            return true
+        }
+        return false
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        commitInlineText()
     }
 
     private func changed() {
@@ -284,6 +385,16 @@ final class ScreenshotCanvasView: NSView {
     private func clamped(_ point: NSPoint) -> NSPoint {
         NSPoint(x: min(max(point.x, imageRect.minX), imageRect.maxX),
                 y: min(max(point.y, imageRect.minY), imageRect.maxY))
+    }
+
+    private func drawInlineTextGuide() {
+        guard let field = inlineTextField else { return }
+        let guideRect = field.frame.insetBy(dx: -4, dy: -2)
+        let path = NSBezierPath(roundedRect: guideRect, xRadius: 4, yRadius: 4)
+        path.lineWidth = 1.5
+        path.setLineDash([5, 3], count: 2, phase: 0)
+        NSColor.systemRed.withAlphaComponent(0.9).setStroke()
+        path.stroke()
     }
 
     private func draw(_ annotation: Annotation) {

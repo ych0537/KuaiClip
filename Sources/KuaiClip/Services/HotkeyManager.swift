@@ -27,6 +27,7 @@ final class HotkeyManager {
     private var eventHandlerRef: EventHandlerRef?
     private var commandEventTap: CFMachPort?
     private var commandEventTapSource: CFRunLoopSource?
+    private var registeredInputMonitoringState: Bool?
 
     // Carbon hotkey state
     private(set) var currentKeyCode: UInt32 = UInt32(kVK_ANSI_C)
@@ -73,6 +74,10 @@ final class HotkeyManager {
     }
 
     private init() {
+        UserDefaults.standard.register(defaults: [
+            "hotkey_useDoubleTap": true,
+            "hotkey_doubleTapSide": CommandKeySide.left.rawValue
+        ])
         loadSavedHotkey()
     }
 
@@ -87,6 +92,7 @@ final class HotkeyManager {
             registerCarbonHotkey()
         }
         registerScreenshotHotkey()
+        registeredInputMonitoringState = isInputMonitoringGranted
     }
 
     func updateHotkey(keyCode: UInt32, modifiers: UInt32) {
@@ -315,7 +321,13 @@ final class HotkeyManager {
         return p.joined()
     }
 
-    func reregisterIfNeeded() { register() }
+    /// Input Monitoring can change while System Settings is in front. Keep the
+    /// effective registration synchronized when KuaiClip becomes active again.
+    func reregisterIfPermissionChanged() {
+        let currentState = isInputMonitoringGranted
+        guard registeredInputMonitoringState != currentState else { return }
+        register()
+    }
 
     func applyCustomFromStorage() {
         let kc = UserDefaults.standard.integer(forKey: "hotkey_keyCode")

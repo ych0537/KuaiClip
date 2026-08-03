@@ -18,6 +18,7 @@ swiftc \
   Sources/KuaiClip/Services/PolishableTextClassifier.swift \
   Sources/KuaiClip/Services/JSONTextFormatter.swift \
   Sources/KuaiClip/Services/UsageMetrics.swift \
+  Sources/KuaiClip/Services/LoginItemManager.swift \
   Tests/KuaiClipTests/TestRunner.swift \
   -o .build/tests/KuaiClip-tests
 

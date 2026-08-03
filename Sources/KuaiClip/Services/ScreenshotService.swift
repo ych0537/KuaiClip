@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import ScreenCaptureKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -15,6 +16,8 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
 
     private var editorWindow: NSWindow?
     private var regionSelectionPanel: NSPanel?
+    private var windowSelectionPanels: [NSPanel] = []
+    private var windowSelectionEventMonitor: Any?
 
     func showModeChooser() {
         guard PurchaseManager.shared.accessState.hasFullAccess else {
@@ -34,6 +37,12 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
 
     func capture(_ mode: ScreenshotMode) {
         dismissEditor()
+
+        guard ensureScreenCaptureAccess() else {
+            presentScreenCapturePermissionRequired()
+            return
+        }
+
         Task {
             do {
                 let content = try await SCShareableContent.excludingDesktopWindows(
@@ -44,7 +53,7 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
                 case .region:
                     try beginRegionSelection(content: content)
                 case .window:
-                    showWindowChooser(content: content)
+                    beginWindowSelection(content: content)
                 case .fullScreen:
                     guard let display = displayAtMouseLocation(in: content.displays) else {
                         throw ScreenshotCaptureError.noDisplay
@@ -128,21 +137,28 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         showEditor(image: NSImage(cgImage: image, size: .zero))
     }
 
-    private func capture(window: SCWindow) async throws {
-        let filter = SCContentFilter(desktopIndependentWindow: window)
-        let configuration = captureConfiguration(for: filter)
-        configuration.ignoreShadowsSingleWindow = false
-        let image = try await SCScreenshotManager.captureImage(
-            contentFilter: filter,
-            configuration: configuration
-        )
+    private func capture(windowID: CGWindowID) throws {
+        guard let image = CGWindowListCreateImage(
+            .null,
+            .optionIncludingWindow,
+            windowID,
+            [.boundsIgnoreFraming, .bestResolution]
+        ) else {
+            throw ScreenshotCaptureError.noWindow
+        }
         showEditor(image: NSImage(cgImage: image, size: .zero))
     }
 
     private func captureConfiguration(for filter: SCContentFilter, sourceRect: CGRect? = nil) -> SCStreamConfiguration {
         let configuration = SCStreamConfiguration()
         let rect = sourceRect ?? filter.contentRect
-        configuration.sourceRect = rect
+        // A window filter already defines its own capture bounds. Supplying the
+        // filter's global contentRect as sourceRect makes ScreenCaptureKit crop
+        // again in the filter-local coordinate space, which can yield an empty
+        // image for windows positioned away from the origin.
+        if let sourceRect {
+            configuration.sourceRect = sourceRect
+        }
         configuration.width = max(1, Int(rect.width * CGFloat(filter.pointPixelScale)))
         configuration.height = max(1, Int(rect.height * CGFloat(filter.pointPixelScale)))
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
@@ -150,7 +166,7 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         return configuration
     }
 
-    private func showWindowChooser(content: SCShareableContent) {
+    private func beginWindowSelection(content: SCShareableContent) {
         let ownPID = ProcessInfo.processInfo.processIdentifier
         let windows = content.windows
             .filter {
@@ -158,35 +174,82 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
                 $0.windowLayer == 0 &&
                 $0.frame.width >= 80 && $0.frame.height >= 60
             }
-            .sorted { ($0.owningApplication?.applicationName ?? "") < ($1.owningApplication?.applicationName ?? "") }
 
         guard !windows.isEmpty else {
             presentError(L10n.screenshotNoWindow)
             return
         }
 
-        let menu = NSMenu()
-        for window in windows {
-            let application = window.owningApplication?.applicationName ?? ""
-            let windowTitle = window.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let title = windowTitle.isEmpty ? application : "\(application) — \(windowTitle)"
-            let item = WindowCaptureMenuItem(title: title, window: window)
-            item.target = self
-            item.action = #selector(selectWindow(_:))
-            menu.addItem(item)
+        dismissWindowSelection()
+        windowSelectionPanels = NSScreen.screens.map { screen in
+            let selectionView = WindowSelectionView(frame: NSRect(origin: .zero, size: screen.frame.size))
+            let panel = ScreenshotSelectionPanel(
+                contentRect: screen.frame,
+                // This must be an activating panel. A nonactivating transparent
+                // panel can receive mouse-moved events while sending clicks to
+                // the application underneath, which makes the highlight work
+                // but leaves selection with no effect.
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            panel.level = .screenSaver
+            panel.backgroundColor = .clear
+            panel.isOpaque = false
+            panel.hasShadow = false
+            panel.ignoresMouseEvents = false
+            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            panel.contentView = selectionView
+
+            selectionView.onCancel = { [weak self] in
+                self?.dismissWindowSelection()
+            }
+            selectionView.onSelection = { [weak self] window in
+                self?.completeWindowSelection(window)
+            }
+            selectionView.windows = windows
+            panel.orderFrontRegardless()
+            return panel
         }
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: L10n.cancel, action: nil, keyEquivalent: ""))
-        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        NSApp.activate(ignoringOtherApps: true)
+        let mouseLocation = NSEvent.mouseLocation
+        let activePanel = windowSelectionPanels.first {
+            NSMouseInRect(mouseLocation, $0.frame, false)
+        } ?? windowSelectionPanels.first
+        activePanel?.makeKeyAndOrderFront(nil)
+        if let contentView = activePanel?.contentView {
+            activePanel?.makeFirstResponder(contentView)
+        }
+
+        windowSelectionEventMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown]
+        ) { [weak self] event in
+            guard let self, !windowSelectionPanels.isEmpty else { return event }
+            if event.type == .keyDown, event.keyCode == 53 {
+                dismissWindowSelection()
+                return nil
+            }
+            return event
+        }
     }
 
-    @objc private func selectWindow(_ sender: WindowCaptureMenuItem) {
-        Task {
-            do {
-                try await capture(window: sender.capturedWindow)
-            } catch {
-                presentError(error.localizedDescription)
-            }
+    private func dismissWindowSelection() {
+        if let windowSelectionEventMonitor {
+            NSEvent.removeMonitor(windowSelectionEventMonitor)
+            self.windowSelectionEventMonitor = nil
+        }
+        windowSelectionPanels.forEach { $0.orderOut(nil) }
+        windowSelectionPanels.removeAll()
+    }
+
+    private func completeWindowSelection(_ window: SCWindow) {
+        guard !windowSelectionPanels.isEmpty else { return }
+        let selectedWindowID = window.windowID
+        dismissWindowSelection()
+        do {
+            try capture(windowID: selectedWindowID)
+        } catch {
+            presentError(error.localizedDescription)
         }
     }
 
@@ -200,9 +263,9 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
 
         regionSelectionPanel?.orderOut(nil)
         let selectionView = RegionSelectionView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        let panel = NSPanel(
+        let panel = ScreenshotSelectionPanel(
             contentRect: screen.frame,
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -210,6 +273,7 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false
+        panel.ignoresMouseEvents = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = selectionView
         regionSelectionPanel = panel
@@ -238,8 +302,8 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
             }
         }
 
-        panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
     }
 
     private func showEditor(image: NSImage) {
@@ -282,6 +346,29 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         alert.runModal()
     }
 
+    private func ensureScreenCaptureAccess() -> Bool {
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+        return CGRequestScreenCaptureAccess()
+    }
+
+    private func presentScreenCapturePermissionRequired() {
+        let alert = NSAlert()
+        alert.messageText = L10n.screenCapturePermissionTitle
+        alert.informativeText = L10n.screenCapturePermissionMessage
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: L10n.openSystemSettings)
+        alert.addButton(withTitle: L10n.cancel)
+
+        if alert.runModal() == .alertFirstButtonReturn,
+           let settingsURL = URL(
+               string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+           ) {
+            NSWorkspace.shared.open(settingsURL)
+        }
+    }
+
     private func presentUpgradeRequired() {
         let alert = NSAlert()
         alert.messageText = L10n.premiumRequired
@@ -298,10 +385,12 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
 
 private enum ScreenshotCaptureError: LocalizedError {
     case noDisplay
+    case noWindow
 
     var errorDescription: String? {
         switch self {
         case .noDisplay: L10n.screenshotNoDisplay
+        case .noWindow: L10n.screenshotNoWindow
         }
     }
 }
@@ -315,15 +404,9 @@ private final class ScreenshotMenuItem: NSMenuItem {
     required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-private final class WindowCaptureMenuItem: NSMenuItem {
-    let capturedWindow: SCWindow
-
-    init(title: String, window: SCWindow) {
-        capturedWindow = window
-        super.init(title: title, action: nil, keyEquivalent: "")
-    }
-
-    required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+private final class ScreenshotSelectionPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
 
 @MainActor
@@ -394,5 +477,110 @@ private final class RegionSelectionView: NSView {
             width: abs(currentPoint.x - startPoint.x),
             height: abs(currentPoint.y - startPoint.y)
         )
+    }
+}
+
+@MainActor
+private final class WindowSelectionView: NSView {
+    var windows: [SCWindow] = []
+    var onSelection: ((SCWindow) -> Void)?
+    var onCancel: (() -> Void)?
+
+    private var hoveredWindow: SCWindow?
+    private var trackingArea: NSTrackingArea?
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        bounds.contains(point) ? self : nil
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.acceptsMouseMovedEvents = true
+        window?.makeFirstResponder(self)
+        updateHoveredWindow()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea { removeTrackingArea(trackingArea) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.activeAlways, .mouseMoved, .inVisibleRect],
+            owner: self
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        updateHoveredWindow()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let point = event.cgEvent?.location ?? CGEvent(source: nil)?.location
+        guard let point,
+              let selectedWindow = windows.first(where: { $0.frame.contains(point) }) else {
+            return
+        }
+        // Let AppKit finish dispatching this mouse event before the callback
+        // removes and releases the panel that owns this view.
+        DispatchQueue.main.async { [weak self] in
+            self?.onSelection?(selectedWindow)
+        }
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 {
+            onCancel?()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.black.withAlphaComponent(0.22).setFill()
+        bounds.fill()
+
+        if let hoveredWindow {
+            let rect = localRect(for: hoveredWindow.frame).intersection(bounds)
+            if !rect.isEmpty {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: rect).addClip()
+                NSColor.clear.setFill()
+                rect.fill(using: .copy)
+                NSGraphicsContext.restoreGraphicsState()
+
+                let border = NSBezierPath(roundedRect: rect.insetBy(dx: 2, dy: 2), xRadius: 8, yRadius: 8)
+                border.lineWidth = 4
+                NSColor.systemBlue.setStroke()
+                border.stroke()
+            }
+        }
+
+    }
+
+    private func updateHoveredWindow() {
+        guard let point = CGEvent(source: nil)?.location else { return }
+        let match = windows.first { $0.frame.contains(point) }
+        if match?.windowID != hoveredWindow?.windowID {
+            hoveredWindow = match
+            needsDisplay = true
+        }
+    }
+
+    private func localRect(for quartzRect: CGRect) -> CGRect {
+        let mainDisplayHeight = CGDisplayBounds(CGMainDisplayID()).height
+        let appKitRect = CGRect(
+            x: quartzRect.minX,
+            y: mainDisplayHeight - quartzRect.maxY,
+            width: quartzRect.width,
+            height: quartzRect.height
+        )
+        guard let window else { return .zero }
+        return appKitRect.offsetBy(dx: -window.frame.minX, dy: -window.frame.minY)
     }
 }
