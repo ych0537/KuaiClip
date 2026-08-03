@@ -12,10 +12,13 @@ swiftc \
   Sources/KuaiClip/Services/HistoryStore.swift \
   Sources/KuaiClip/Services/ClipboardMonitor.swift \
   Sources/KuaiClip/Services/AIKeychain.swift \
+  Sources/KuaiClip/Services/DistributionChannel.swift \
+  Sources/KuaiClip/Services/PurchaseManager.swift \
   Sources/KuaiClip/Services/TextPolishService.swift \
   Sources/KuaiClip/Services/PolishableTextClassifier.swift \
   Sources/KuaiClip/Services/JSONTextFormatter.swift \
   Sources/KuaiClip/Services/UsageMetrics.swift \
+  Sources/KuaiClip/Services/LoginItemManager.swift \
   Tests/KuaiClipTests/TestRunner.swift \
   -o .build/tests/KuaiClip-tests
 

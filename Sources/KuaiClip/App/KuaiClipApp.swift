@@ -25,6 +25,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.applicationIconImage = icon
         }
 
+        // New installations launch at login by default. A persisted user choice
+        // still takes precedence over the registered default.
+        LoginItemManager.applyConfiguredValue()
+
         // Set up menu bar
         MenuBarManager.shared.setup()
 
@@ -61,6 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotkeyManager.shared.unregister()
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        HotkeyManager.shared.reregisterIfPermissionChanged()
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
             MenuBarManager.shared.showPopup()
@@ -84,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(true, forKey: key)
 
         // Only prompt if double-tap is the selected mode AND accessibility not granted
-        guard HotkeyManager.shared.useDoubleTap, !AXIsProcessTrusted() else { return }
+        guard HotkeyManager.shared.useDoubleTap, !CGPreflightListenEventAccess() else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             let alert = NSAlert()
@@ -98,8 +106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let response = alert.runModal()
             switch response {
             case .alertFirstButtonReturn:
+                _ = CGRequestListenEventAccess()
                 NSWorkspace.shared.open(
-                    URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+                    URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
                 )
             case .alertSecondButtonReturn:
                 // Switch to Carbon hotkey mode

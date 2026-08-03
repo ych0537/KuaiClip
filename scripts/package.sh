@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+DISTRIBUTION_CHANNEL="${DISTRIBUTION_CHANNEL:-direct}"
+if [ "${DISTRIBUTION_CHANNEL}" != "direct" ]; then
+    echo "❌ scripts/package.sh packages only the Direct/GitHub build." >&2
+    echo "   Archive the App Store target with Xcode instead." >&2
+    exit 1
+fi
+
+bash "$(dirname "$0")/check-release-safety.sh"
+
 APP_NAME="KuaiClip"
 BUILD_DIR="${BUILD_DIR:-.build/debug}"
 VERSION="${VERSION:-1.0.0}"

@@ -19,6 +19,7 @@ struct TestRunner {
                 try runHistoryStoreTests()
                 try runLocalizationTests()
                 try runUsageMetricsTests()
+                try runLoginItemTests()
                 try runPolishableTextClassifierTests()
                 try runJSONTextFormatterTests()
                 try imageEncodingPreservesOriginalDimensions()
@@ -49,6 +50,25 @@ struct TestRunner {
             fputs("Test failed: \(error)\n", stderr)
             exit(1)
         }
+    }
+
+    private static func runLoginItemTests() throws {
+        let suiteName = "KuaiClipTests.LoginItem.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            throw TestFailure.failed("expected isolated login item defaults")
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        try expect(
+            LoginItemManager.configuredValue(defaults: defaults),
+            "launch at login should default to enabled"
+        )
+
+        defaults.set(false, forKey: LoginItemManager.defaultsKey)
+        try expect(
+            !LoginItemManager.configuredValue(defaults: defaults),
+            "an explicit disabled preference should be preserved"
+        )
     }
 
     private static func runJSONTextFormatterTests() throws {

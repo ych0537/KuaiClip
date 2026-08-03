@@ -82,6 +82,15 @@ final class PasteService {
 
     /// Simulate paste keystrokes to the frontmost application
     private func pasteToFrontmost(stripFormatting: Bool) {
+        // Posting keyboard events uses the dedicated PostEvent TCC privilege.
+        // It is distinct from full Accessibility API access and is compatible
+        // with an App Sandbox build. If the user declines, the item has already
+        // been copied and remains available for a manual Command-V.
+        guard CGPreflightPostEventAccess() || CGRequestPostEventAccess() else {
+            NSLog("[KuaiClip] Direct paste permission denied; content remains on the pasteboard")
+            return
+        }
+
         let src = CGEventSource(stateID: .combinedSessionState)
 
         let cmdKey: CGEventFlags = .maskCommand

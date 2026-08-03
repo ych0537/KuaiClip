@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import ServiceManagement
 import Carbon
 
 struct PreferencesView: View {
@@ -10,9 +9,10 @@ struct PreferencesView: View {
 
     @AppStorage("maxHistoryItems") private var maxHistoryItems: Int = HistoryStore.defaultUnpinnedItems
     @AppStorage("pollingInterval") private var pollingInterval: Double = 0.5
-    @AppStorage("launchAtLogin") private var launchAtLogin: Bool = false
+    @AppStorage(LoginItemManager.defaultsKey) private var launchAtLogin = LoginItemManager.defaultEnabled
     @AppStorage("stripFormattingByDefault") private var stripFormattingByDefault: Bool = false
     @AppStorage("hotkey_useDoubleTap") private var useDoubleTapCommand: Bool = true
+    @AppStorage("hotkey_doubleTapSide") private var doubleTapSide: String = HotkeyManager.CommandKeySide.left.rawValue
     @AppStorage("hotkey_keyCode") private var hotkeyKeyCode: Int = 8
     @AppStorage("hotkey_modifiers") private var hotkeyModifiers: Int = 512 | 256
     @AppStorage("screenshot_hotkey_keyCode") private var screenshotHotkeyKeyCode: Int = 1
@@ -29,7 +29,11 @@ struct PreferencesView: View {
     @State private var showResetUsageConfirmation = false
     @State private var usageReportCopied = false
     @State private var showShortcutConflict = false
+    @State private var inputMonitoringGranted = CGPreflightListenEventAccess()
     @ObservedObject private var usageMetrics = UsageMetrics.shared
+#if APP_STORE
+    @ObservedObject private var purchaseManager = PurchaseManager.shared
+#endif
 
     private var theme: AppTheme { AppTheme(appearanceMode) }
 
@@ -58,6 +62,10 @@ struct PreferencesView: View {
             maxHistoryItems = min(max(maxHistoryItems, 10), HistoryStore.maxUnpinnedItems)
             HistoryStore.shared.updateMaxItems(maxHistoryItems)
             historyCount = HistoryStore.shared.items.count
+            refreshAccessibilityStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibilityStatus()
         }
         .onDisappear { stopRecording() }
         .onChange(of: appLanguage) { _, _ in
@@ -126,7 +134,7 @@ struct PreferencesView: View {
                 Toggle(isOn: $launchAtLogin) {
                     settingLabel(L10n.launchAtLogin, icon: "power")
                 }
-                .onChange(of: launchAtLogin) { _, value in setLoginItem(enabled: value) }
+                .onChange(of: launchAtLogin) { _, value in LoginItemManager.setEnabled(value) }
 
                 Toggle(isOn: $stripFormattingByDefault) {
                     settingLabel(L10n.stripFmt, icon: "textformat")
@@ -206,28 +214,49 @@ struct PreferencesView: View {
     private var shortcutsTab: some View {
         Form {
             Section(L10n.popupActivation) {
-                LabeledContent {
+                VStack(alignment: .leading, spacing: 10) {
+                    settingLabel(L10n.activationMode, icon: "command")
+
                     Picker("", selection: Binding(
-                        get: { useDoubleTapCommand ? "double" : "custom" },
+                        get: { useDoubleTapCommand ? doubleTapSide : "custom" },
                         set: { value in
-                            useDoubleTapCommand = value == "double"
-                            HotkeyManager.shared.reregisterIfNeeded()
+                            if let side = HotkeyManager.CommandKeySide(rawValue: value) {
+                                doubleTapSide = side.rawValue
+                                useDoubleTapCommand = true
+                                HotkeyManager.shared.doubleTapSide = side
+                                HotkeyManager.shared.useDoubleTap = true
+                            } else {
+                                useDoubleTapCommand = false
+                                HotkeyManager.shared.useDoubleTap = false
+                            }
                         }
                     )) {
-                        Text(L10n.doubleTap).tag("double")
+                        Text(L10n.doubleTapLeftCompact).tag(HotkeyManager.CommandKeySide.left.rawValue)
+                        Text(L10n.doubleTapRightCompact).tag(HotkeyManager.CommandKeySide.right.rawValue)
                         Text(L10n.custom).tag("custom")
                     }
                     .labelsHidden()
                     .pickerStyle(.segmented)
-                    .frame(width: 265)
-                } label: {
-                    settingLabel(L10n.activationMode, icon: "command")
+                    .frame(maxWidth: .infinity)
                 }
 
-                if useDoubleTapCommand && !AXIsProcessTrusted() {
-                    Label(L10n.accWarning, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                if useDoubleTapCommand && !inputMonitoringGranted {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(L10n.accWarning, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+
+                        Text(L10n.accessibilityGrantSteps)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Button {
+                            requestInputMonitoringAccess()
+                        } label: {
+                            Label(L10n.grantAccessibilityAccess, systemImage: "lock.open")
+                        }
+                    }
                 }
 
                 if !useDoubleTapCommand {
@@ -310,6 +339,10 @@ struct PreferencesView: View {
                 .padding(.vertical, 4)
             }
 
+#if APP_STORE
+            purchaseSection
+#endif
+
             Section(L10n.localUsage) {
                 usageRow(L10n.popupOpens, value: usageMetrics.popupOpenCount)
                 usageRow(L10n.polishWindowOpens, value: usageMetrics.polishWindowOpenCount)
@@ -344,6 +377,61 @@ struct PreferencesView: View {
         .scrollContentBackground(.hidden)
         .background(theme.background)
     }
+
+#if APP_STORE
+    @ViewBuilder
+    private var purchaseSection: some View {
+        Section(L10n.license) {
+            LabeledContent(L10n.accessStatus) {
+                switch purchaseManager.accessState {
+                case .loading:
+                    ProgressView().controlSize(.small)
+                case .trialAvailable:
+                    Text(L10n.trialAvailable).foregroundColor(.secondary)
+                case .trial(let expiration):
+                    Text(L10n.trialEnds(expiration)).foregroundColor(.secondary)
+                case .lifetime:
+                    Label(L10n.lifetimeUnlocked, systemImage: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                case .locked:
+                    Text(L10n.trialExpired).foregroundColor(.orange)
+                }
+            }
+
+            if purchaseManager.accessState == .trialAvailable {
+                Button(L10n.startSevenDayTrial) {
+                    Task { await purchaseManager.startTrial() }
+                }
+                .disabled(purchaseManager.isPurchasing)
+            }
+
+            if purchaseManager.accessState != .lifetime {
+                Button {
+                    Task { await purchaseManager.buyLifetime() }
+                } label: {
+                    if let product = purchaseManager.lifetimeProduct {
+                        Text(L10n.buyLifetime(product.displayPrice))
+                    } else {
+                        Text(L10n.buyLifetimeUnavailable)
+                    }
+                }
+                .disabled(purchaseManager.isPurchasing || purchaseManager.lifetimeProduct == nil)
+            }
+
+            Button(L10n.restorePurchases) {
+                Task { await purchaseManager.restorePurchases() }
+            }
+            .disabled(purchaseManager.isPurchasing)
+
+            if purchaseManager.isPurchasing {
+                ProgressView().controlSize(.small)
+            }
+            if let error = purchaseManager.lastError {
+                Text(error).font(.caption).foregroundColor(.red)
+            }
+        }
+    }
+#endif
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -464,15 +552,22 @@ struct PreferencesView: View {
         HotkeyManager.shared.applyCustomFromStorage()
     }
 
-    private func setLoginItem(enabled: Bool) {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            NSLog("[KuaiClip] Login item error: %@", error.localizedDescription)
+    private func requestInputMonitoringAccess() {
+        _ = CGRequestListenEventAccess()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            guard let url = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+            ) else { return }
+            NSWorkspace.shared.open(url)
         }
     }
+
+    private func refreshAccessibilityStatus() {
+        let granted = CGPreflightListenEventAccess()
+        inputMonitoringGranted = granted
+        if granted && useDoubleTapCommand {
+            HotkeyManager.shared.reregisterIfPermissionChanged()
+        }
+    }
+
 }

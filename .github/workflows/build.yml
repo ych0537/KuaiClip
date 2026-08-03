@@ -29,7 +29,7 @@ jobs:
         run: swift build -c release
 
       - name: Package app, zip, and pkg
-        run: BUILD_DIR=.build/release VERSION="${GITHUB_REF_NAME#v}" bash scripts/package.sh
+        run: DISTRIBUTION_CHANNEL=direct BUILD_DIR=.build/release VERSION="${GITHUB_REF_NAME#v}" bash scripts/package.sh
 
       - name: Verify packages exist
         run: |
@@ -38,10 +38,5 @@ jobs:
           test -f release/KuaiClip.app.zip
           test -f release/KuaiClip.pkg
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: KuaiClip-unsigned-build
-          path: |
-            release/KuaiClip.app.zip
-            release/KuaiClip.pkg
+      # Deliberately do not upload packaged applications or archives. GitHub
+      # stores source only; distributable builds are published separately.

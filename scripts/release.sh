@@ -35,6 +35,8 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "→ Uncommitted changes detected — will include in release."
 fi
 
+bash scripts/check-release-safety.sh
+
 # ─── Build check ─────────────────────────────────────────────
 echo "→ Building..."
 swift build || { echo "ERROR: Build failed"; exit 1; }
@@ -42,6 +44,7 @@ echo "✓ Build passes"
 
 # ─── Commit ──────────────────────────────────────────────────
 git add -A
+bash scripts/check-release-safety.sh
 git commit -m "$MESSAGE" || echo "(nothing to commit, continuing)"
 
 # ─── Tag & Push ──────────────────────────────────────────────
