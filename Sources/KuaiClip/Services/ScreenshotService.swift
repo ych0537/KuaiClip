@@ -127,8 +127,21 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         return displays.first { $0.displayID == displayID } ?? displays.first
     }
 
-    private func capture(display: SCDisplay, sourceRect: CGRect? = nil) async throws {
-        let filter = SCContentFilter(display: display, excludingWindows: [])
+    private func capture(
+        display: SCDisplay,
+        sourceRect: CGRect? = nil,
+        excludingApplications: [SCRunningApplication] = []
+    ) async throws {
+        let filter: SCContentFilter
+        if excludingApplications.isEmpty {
+            filter = SCContentFilter(display: display, excludingWindows: [])
+        } else {
+            filter = SCContentFilter(
+                display: display,
+                excludingApplications: excludingApplications,
+                exceptingWindows: []
+            )
+        }
         let configuration = captureConfiguration(for: filter, sourceRect: sourceRect)
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: filter,
@@ -137,15 +150,14 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
         showEditor(image: NSImage(cgImage: image, size: .zero))
     }
 
-    private func capture(windowID: CGWindowID) throws {
-        guard let image = CGWindowListCreateImage(
-            .null,
-            .optionIncludingWindow,
-            windowID,
-            [.boundsIgnoreFraming, .bestResolution]
-        ) else {
-            throw ScreenshotCaptureError.noWindow
-        }
+    private func capture(window: SCWindow) async throws {
+        let filter = SCContentFilter(desktopIndependentWindow: window)
+        let configuration = captureConfiguration(for: filter)
+        configuration.ignoreShadowsSingleWindow = true
+        let image = try await SCScreenshotManager.captureImage(
+            contentFilter: filter,
+            configuration: configuration
+        )
         showEditor(image: NSImage(cgImage: image, size: .zero))
     }
 
@@ -244,17 +256,20 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
 
     private func completeWindowSelection(_ window: SCWindow) {
         guard !windowSelectionPanels.isEmpty else { return }
-        let selectedWindowID = window.windowID
         dismissWindowSelection()
-        do {
-            try capture(windowID: selectedWindowID)
-        } catch {
-            presentError(error.localizedDescription)
+        Task {
+            do {
+                try await capture(window: window)
+            } catch {
+                presentError(error.localizedDescription)
+            }
         }
     }
 
     private func beginRegionSelection(content: SCShareableContent) throws {
         let mouseLocation = NSEvent.mouseLocation
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let ownApplications = content.applications.filter { $0.processID == ownPID }
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) ?? NSScreen.main,
               let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
               let display = content.displays.first(where: { $0.displayID == CGDirectDisplayID(number.uint32Value) }) else {
@@ -295,7 +310,11 @@ final class ScreenshotService: NSObject, NSWindowDelegate {
             )
             Task {
                 do {
-                    try await self.capture(display: display, sourceRect: sourceRect)
+                    try await self.capture(
+                        display: display,
+                        sourceRect: sourceRect,
+                        excludingApplications: ownApplications
+                    )
                 } catch {
                     self.presentError(error.localizedDescription)
                 }

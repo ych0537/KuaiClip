@@ -22,19 +22,31 @@ final class HistoryStore {
     private(set) var items: [ClipboardItem] = []
     private let userDefaults: UserDefaults
     private let userDefaultsKey = "kuaiclip_history_items"
+    private let historyFileURL: URL?
+
+    private static var defaultHistoryFileURL: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("KuaiClip", isDirectory: true)
+            .appendingPathComponent("clipboard-history.json", isDirectory: false)
+    }
 
     private var maxItems: Int {
         let saved = userDefaults.integer(forKey: "maxHistoryItems")
         return min(saved > 0 ? saved : Self.defaultUnpinnedItems, Self.maxUnpinnedItems)
     }
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .standard, historyFileURL: URL? = nil) {
         self.userDefaults = userDefaults
+        // Isolated UserDefaults suites used by tests keep their existing
+        // in-suite persistence unless a file URL is explicitly supplied.
+        self.historyFileURL = historyFileURL ?? (userDefaults === UserDefaults.standard
+            ? Self.defaultHistoryFileURL
+            : nil)
         normalizeMaxItemsSetting()
-        load()
+        let didLoadLegacyDefaults = load()
         let didUpdateShortcuts = reassignPinnedShortcutKeys()
         let didTrimHistory = trimUnpinnedItemsIfNeeded()
-        if didUpdateShortcuts || didTrimHistory { save() }
+        if didLoadLegacyDefaults || didUpdateShortcuts || didTrimHistory { save() }
     }
 
     // MARK: - Public API
@@ -174,17 +186,57 @@ final class HistoryStore {
 
     func save() {
         guard let data = try? JSONEncoder().encode(items) else { return }
-        userDefaults.set(data, forKey: userDefaultsKey)
-    }
-
-    private func load() {
-        guard let data = userDefaults.data(forKey: userDefaultsKey),
-              let decoded = try? JSONDecoder().decode([ClipboardItem].self, from: data)
-        else {
-            items = []
+        guard let historyFileURL else {
+            userDefaults.set(data, forKey: userDefaultsKey)
             return
         }
-        items = decoded
+
+        do {
+            try FileManager.default.createDirectory(
+                at: historyFileURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try data.write(to: historyFileURL, options: [.atomic, .completeFileProtectionUnlessOpen])
+            // Remove the oversized legacy value only after the file write has
+            // succeeded, so an upgrade cannot lose existing history.
+            removeLegacyHistoryFromDefaults()
+        } catch {
+            NSLog("KuaiClip failed to save clipboard history: %@", error.localizedDescription)
+        }
+    }
+
+    private func removeLegacyHistoryFromDefaults() {
+        userDefaults.removeObject(forKey: userDefaultsKey)
+
+        // CFPreferences can reject even a deletion when the existing domain
+        // already exceeds its size limit. Replacing the persistent domain
+        // without the large key makes that cleanup unambiguous.
+        guard userDefaults === UserDefaults.standard,
+              let domainName = Bundle.main.bundleIdentifier,
+              var domain = userDefaults.persistentDomain(forName: domainName),
+              domain.removeValue(forKey: userDefaultsKey) != nil else { return }
+        userDefaults.setPersistentDomain(domain, forName: domainName)
+        userDefaults.synchronize()
+    }
+
+    /// Returns true when data came from the legacy UserDefaults value and
+    /// should be migrated to the history file.
+    private func load() -> Bool {
+        if let historyFileURL,
+           let data = try? Data(contentsOf: historyFileURL),
+           let decoded = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
+            items = decoded
+            return false
+        }
+
+        if let data = userDefaults.data(forKey: userDefaultsKey),
+           let decoded = try? JSONDecoder().decode([ClipboardItem].self, from: data) {
+            items = decoded
+            return historyFileURL != nil
+        }
+
+        items = []
+        return false
     }
 
     private func normalizeMaxItemsSetting() {

@@ -23,6 +23,7 @@ struct TestRunner {
                 try runPolishableTextClassifierTests()
                 try runJSONTextFormatterTests()
                 try imageEncodingPreservesOriginalDimensions()
+                try historyMigratesOutOfUserDefaults()
             }
             try await textPolishRejectsOversizedInput()
             try await translationRejectsOversizedInput()
@@ -253,6 +254,33 @@ struct TestRunner {
             encodedBitmap.pixelsWide == 488 && encodedBitmap.pixelsHigh == 272,
             "encoded PNG should keep original pixel dimensions"
         )
+    }
+
+    @MainActor
+    private static func historyMigratesOutOfUserDefaults() throws {
+        let context = TestContext()
+        defer { context.cleanUp() }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("KuaiClipHistoryTests-" + UUID().uuidString, isDirectory: true)
+        let fileURL = directory.appendingPathComponent("history.json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let legacyItems = [ClipboardItem(content: "legacy history")]
+        context.defaults.set(
+            try JSONEncoder().encode(legacyItems),
+            forKey: "kuaiclip_history_items"
+        )
+
+        let migrated = HistoryStore(userDefaults: context.defaults, historyFileURL: fileURL)
+        try expect(migrated.items.first?.content == "legacy history", "legacy history should load")
+        try expect(FileManager.default.fileExists(atPath: fileURL.path), "history should migrate to a file")
+        try expect(
+            context.defaults.object(forKey: "kuaiclip_history_items") == nil,
+            "oversized history should be removed from UserDefaults after migration"
+        )
+
+        let reloaded = HistoryStore(userDefaults: context.defaults, historyFileURL: fileURL)
+        try expect(reloaded.items.first?.content == "legacy history", "migrated history should reload")
     }
 
     @MainActor

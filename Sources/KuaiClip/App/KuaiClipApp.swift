@@ -19,6 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("[KuaiClip] Application launched")
 
+        // Migrate large clipboard history out of UserDefaults before StoreKit
+        // or any other subsystem attempts to update the preferences domain.
+        _ = HistoryStore.shared
+
         NSApp.setActivationPolicy(.accessory)
         AppTheme.applyAppearance(AppTheme.migrateStoredAppearance())
         if let icon = AppIconTheme.selected.appImage {

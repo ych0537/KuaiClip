@@ -165,6 +165,7 @@ final class ScreenshotCanvasView: NSView, NSTextFieldDelegate {
     private var inlineTextField: NSTextField?
     private var inlineTextPoint: NSPoint?
     private var isFinishingInlineText = false
+    private var isRenderingExport = false
 
     init(image: NSImage) {
         self.image = image
@@ -186,8 +187,15 @@ final class ScreenshotCanvasView: NSView, NSTextFieldDelegate {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        NSColor.black.withAlphaComponent(0.72).setFill()
-        bounds.fill()
+        if isRenderingExport {
+            // The dark fill is only an editor backdrop. Drawing it into the
+            // exported bitmap turns a captured window's transparent rounded
+            // corners into black pixels.
+            NSGraphicsContext.current?.cgContext.clear(bounds)
+        } else {
+            NSColor.black.withAlphaComponent(0.72).setFill()
+            bounds.fill()
+        }
         image.draw(in: imageRect, from: .zero, operation: .sourceOver, fraction: 1)
         for annotation in annotations { draw(annotation) }
         if let working { draw(working) }
@@ -272,6 +280,8 @@ final class ScreenshotCanvasView: NSView, NSTextFieldDelegate {
             bitsPerPixel: 0
         ) else { return nil }
         rep.size = imageRect.size
+        isRenderingExport = true
+        defer { isRenderingExport = false }
         cacheDisplay(in: imageRect, to: rep)
         return rep.representation(using: .png, properties: [:])
     }
