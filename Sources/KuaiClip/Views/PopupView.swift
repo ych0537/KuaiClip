@@ -352,7 +352,7 @@ struct PopupView: View {
     private func selectAndPaste(_ item: ClipboardItem) {
         selectedIndex = filteredItems.firstIndex(of: item) ?? selectedIndex
         let isHidden = item.isContentHidden
-        PasteService.shared.copyAndPaste(item)
+        PasteService.shared.copyAndPaste(item, formatting: .inherit)
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()
     }
@@ -360,7 +360,7 @@ struct PopupView: View {
     private func selectAndPasteWithoutFormatting(_ item: ClipboardItem) {
         selectedIndex = filteredItems.firstIndex(of: item) ?? selectedIndex
         let isHidden = item.isContentHidden
-        PasteService.shared.copyAndPaste(item, pasteWithoutFormatting: true)
+        PasteService.shared.copyAndPaste(item, formatting: .stripFormatting)
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()
     }
@@ -603,7 +603,7 @@ struct PopupKeyboardHandler: ViewModifier {
     private func handleCopyAndPaste() {
         guard let item = selectedItem else { return }
         let isHidden = item.isContentHidden
-        PasteService.shared.copyAndPaste(item)
+        PasteService.shared.copyAndPaste(item, formatting: .inherit)
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()
     }
@@ -611,7 +611,7 @@ struct PopupKeyboardHandler: ViewModifier {
     private func handlePasteWithoutFormatting() {
         guard let item = selectedItem else { return }
         let isHidden = item.isContentHidden
-        PasteService.shared.copyAndPaste(item, pasteWithoutFormatting: true)
+        PasteService.shared.copyAndPaste(item, formatting: .stripFormatting)
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()
     }
@@ -670,9 +670,9 @@ struct PopupKeyboardHandler: ViewModifier {
         case .copy:
             PasteService.shared.copyToClipboard(item)
         case .pasteWithFormatting:
-            PasteService.shared.copyAndPaste(item)
+            PasteService.shared.copyAndPaste(item, formatting: .keepFormatting)
         case .pasteWithoutFormatting:
-            PasteService.shared.copyAndPaste(item, pasteWithoutFormatting: true)
+            PasteService.shared.copyAndPaste(item, formatting: .stripFormatting)
         }
         if isHidden { HistoryStore.shared.removeItem(item) }
         onDismiss()

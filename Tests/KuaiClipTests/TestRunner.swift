@@ -149,6 +149,9 @@ struct TestRunner {
         try defaultAndMaximumHistorySettingsAreEnforced()
         try pinnedItemsUseSeparateLabelsAndRespectLimit()
         try usedUnpinnedItemMovesToTopWithoutReorderingPinnedItems()
+        try distinctImagesWithSameDimensionsStaySeparate()
+        try identicalImageDataDeduplicates()
+        try pinnedImageProtectionComparesPixelData()
     }
 
     private static func runLocalizationTests() throws {
@@ -464,6 +467,94 @@ struct TestRunner {
                    "used unpinned item should move to the first unpinned position")
         try expect(store.pinnedItems.map(\.id) == pinnedOrder,
                    "using an unpinned item should not reorder pinned items")
+    }
+
+    @MainActor
+    private static func distinctImagesWithSameDimensionsStaySeparate() throws {
+        let context = TestContext()
+        defer { context.cleanUp() }
+        let store = HistoryStore(userDefaults: context.defaults)
+
+        guard let redPNG = makeTestPNG(width: 64, height: 64, red: 200, green: 20, blue: 20),
+              let bluePNG = makeTestPNG(width: 64, height: 64, red: 20, green: 20, blue: 200)
+        else {
+            throw TestFailure.failed("expected test PNGs")
+        }
+        let label = "[Image: 64×64]"
+
+        store.addItem(label, contentType: .image, imageData: redPNG)
+        store.addItem(label, contentType: .image, imageData: bluePNG)
+
+        try expect(store.items.count == 2,
+                   "two different images with identical pixel dimensions should stay separate")
+    }
+
+    @MainActor
+    private static func identicalImageDataDeduplicates() throws {
+        let context = TestContext()
+        defer { context.cleanUp() }
+        let store = HistoryStore(userDefaults: context.defaults)
+
+        guard let png = makeTestPNG(width: 64, height: 64, red: 30, green: 180, blue: 90) else {
+            throw TestFailure.failed("expected test PNG")
+        }
+        let label = "[Image: 64×64]"
+
+        store.addItem(label, contentType: .image, imageData: png)
+        store.addItem(label, contentType: .image, imageData: png)
+
+        try expect(store.items.count == 1, "copying the same image again should deduplicate")
+    }
+
+    @MainActor
+    private static func pinnedImageProtectionComparesPixelData() throws {
+        let context = TestContext()
+        defer { context.cleanUp() }
+        let store = HistoryStore(userDefaults: context.defaults)
+
+        guard let png = makeTestPNG(width: 64, height: 64, red: 90, green: 90, blue: 200),
+              let otherPNG = makeTestPNG(width: 64, height: 64, red: 200, green: 90, blue: 90)
+        else {
+            throw TestFailure.failed("expected test PNGs")
+        }
+        let label = "[Image: 64×64]"
+
+        store.addItem(label, contentType: .image, imageData: png)
+        guard let pinned = store.items.first else { throw TestFailure.failed("expected image item") }
+        store.togglePin(pinned)
+
+        // Re-copying the same pixels must not create a new history row.
+        store.addItem(label, contentType: .image, imageData: png)
+        try expect(store.items.count == 1, "re-copying a pinned image should not be re-added")
+
+        // A different image that shares the same label must still be added.
+        store.addItem(label, contentType: .image, imageData: otherPNG)
+        try expect(store.items.count == 2, "a different image must be added even when a same-size image is pinned")
+        try expect(store.pinnedItems.count == 1, "pinned image should remain pinned")
+        try expect(store.unpinnedItems.count == 1, "the different image should appear unpinned")
+    }
+
+    /// Builds a small solid-color PNG used to exercise image deduplication.
+    private static func makeTestPNG(width: Int, height: Int, red: CGFloat, green: CGFloat, blue: CGFloat) -> Data? {
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: width,
+            pixelsHigh: height,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else { return nil }
+        let color = NSColor(calibratedRed: red / 255, green: green / 255, blue: blue / 255, alpha: 1)
+        for y in 0..<height {
+            for x in 0..<width {
+                bitmap.setColor(color, atX: x, y: y)
+            }
+        }
+        return bitmap.representation(using: .png, properties: [:])
     }
 
     private static func withLanguage(_ language: String, _ body: () throws -> Void) throws {

@@ -10,7 +10,13 @@ final class ClipboardMonitor {
     private var lastChangeCount: Int = 0
     private var isEnabled: Bool = true
     private var ignoreNextCopy: Bool = false
-    private var pollingInterval: TimeInterval = 0.5
+
+    /// Polling interval in seconds. The Preferences setting is the source of
+    /// truth; 0.5s is the fallback for first launch.
+    private var pollingInterval: TimeInterval {
+        let saved = UserDefaults.standard.double(forKey: "pollingInterval")
+        return saved > 0 ? saved : 0.5
+    }
 
     private init() {}
 
@@ -21,9 +27,12 @@ final class ClipboardMonitor {
     }
 
     func start() {
+        timer?.invalidate()
+        timer = nil
         lastChangeCount = NSPasteboard.general.changeCount
-        timer = Timer.scheduledTimer(
-            withTimeInterval: pollingInterval,
+        let interval = pollingInterval
+        let newTimer = Timer.scheduledTimer(
+            withTimeInterval: interval,
             repeats: true
         ) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -31,10 +40,16 @@ final class ClipboardMonitor {
             }
         }
         // Ensure timer fires even when popup is open
-        if let timer = timer {
-            RunLoop.current.add(timer, forMode: .common)
-        }
-        print("[KuaiClip] Clipboard monitoring started")
+        RunLoop.current.add(newTimer, forMode: .common)
+        timer = newTimer
+        print("[KuaiClip] Clipboard monitoring started (\(interval)s)")
+    }
+
+    /// Recreate the polling timer so a changed Preferences interval takes
+    /// effect without restarting the app.
+    func updatePollingInterval() {
+        guard timer != nil else { return }
+        start()
     }
 
     func stop() {

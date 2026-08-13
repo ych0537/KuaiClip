@@ -130,6 +130,9 @@ struct PreferencesView: View {
                 } label: {
                     settingLabel(L10n.polling, icon: "waveform.path.ecg")
                 }
+                .onChange(of: pollingInterval) { _, _ in
+                    ClipboardMonitor.shared.updatePollingInterval()
+                }
 
                 Toggle(isOn: $launchAtLogin) {
                     settingLabel(L10n.launchAtLogin, icon: "power")

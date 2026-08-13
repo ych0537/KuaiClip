@@ -2,6 +2,16 @@ import Foundation
 import AppKit
 import CoreGraphics
 
+/// How formatting should be handled when pasting into the frontmost app.
+enum PasteFormatting {
+    /// Follow the "strip formatting by default" preference.
+    case inherit
+    /// Always paste with formatting (Command-V).
+    case keepFormatting
+    /// Always paste without formatting (Option-Shift-Command-V).
+    case stripFormatting
+}
+
 /// Service for copy and paste operations
 @MainActor
 final class PasteService {
@@ -35,8 +45,14 @@ final class PasteService {
         HistoryStore.shared.markUsed(item)
     }
 
-    /// Copy item and paste into frontmost application
-    func copyAndPaste(_ item: ClipboardItem, pasteWithoutFormatting: Bool = false) {
+    /// Copy item and paste into frontmost application.
+    ///
+    /// The formatting parameter controls whether the paste preserves
+    /// rich formatting. The inherit case follows the "strip formatting by
+    /// default" preference from Preferences; the explicit cases always
+    /// override it (Option+number keeps formatting, Option+Shift+number
+    /// strips it).
+    func copyAndPaste(_ item: ClipboardItem, formatting: PasteFormatting = .inherit) {
         let targetApplication = MenuBarManager.shared.pasteTargetApplication
         copyToClipboard(item)
 
@@ -46,12 +62,24 @@ final class PasteService {
         // can otherwise paste into KuaiClip itself or drop the event.
         pasteWhenTargetIsFrontmost(
             targetApplication,
-            stripFormatting: pasteWithoutFormatting,
+            stripFormatting: stripFormatting(for: formatting),
             remainingAttempts: 20
         )
     }
 
     // MARK: - Private
+
+    /// Resolves the "strip formatting by default" preference for a paste.
+    private func stripFormatting(for formatting: PasteFormatting) -> Bool {
+        switch formatting {
+        case .inherit:
+            return UserDefaults.standard.bool(forKey: "stripFormattingByDefault")
+        case .keepFormatting:
+            return false
+        case .stripFormatting:
+            return true
+        }
+    }
 
     private func pasteWhenTargetIsFrontmost(
         _ targetApplication: NSRunningApplication?,

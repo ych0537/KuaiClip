@@ -83,6 +83,11 @@ cat > "${CONTENTS_DIR}/Info.plist" << EOF
     <true/>
     <key>LSUIElement</key>
     <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
 </dict>

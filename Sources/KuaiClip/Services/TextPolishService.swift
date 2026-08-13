@@ -290,15 +290,24 @@ struct TextPolishService {
     }
 
     private static func callGemini(_ input: String, model: String, key: String) async throws -> String {
-        var request = URLRequest(url: URL(string: "https://generativelanguage.googleapis.com/v1beta/interactions")!)
+        // Official Gemini API: POST /v1beta/models/{model}:generateContent
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent") else {
+            throw TextPolishError.invalidResponse(L10n.aiInvalidResponse)
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["model": model, "input": input, "store": false])
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "contents": [["parts": [["text": input]]]]
+        ])
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response, data: data)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        if let text = json?["output_text"] as? String { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let candidates = json?["candidates"] as? [[String: Any]]
+        let parts = candidates?.first?["content"] as? [String: Any]
+        let texts = (parts?["parts"] as? [[String: Any]] ?? []).compactMap { $0["text"] as? String }
+        if !texts.isEmpty { return texts.joined().trimmingCharacters(in: .whitespacesAndNewlines) }
         throw TextPolishError.invalidResponse(L10n.aiInvalidResponse)
     }
 

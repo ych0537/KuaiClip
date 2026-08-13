@@ -51,6 +51,34 @@ final class HistoryStore {
 
     // MARK: - Public API
 
+    /// True when `item` carries the same copied content as the given
+    /// (content, contentType, imageData) triple.
+    ///
+    /// Images are matched by their pixel data instead of the display label
+    /// ("[Image: W×H]"), so two different screenshots with identical pixel
+    /// dimensions are never collapsed into a single history entry.
+    static func hasSameContent(
+        _ item: ClipboardItem,
+        asContent content: String,
+        contentType: ClipboardContentType,
+        imageData: Data?
+    ) -> Bool {
+        if contentType == .image || item.contentType == .image {
+            guard contentType == .image, item.contentType == .image else { return false }
+            if let imageData, let existingData = item.imageData {
+                return imageData == existingData
+            }
+            // Image items whose pixel data could not be captured fall back to
+            // their label for matching.
+            return item.imageData == nil && item.content == content
+        }
+        return item.content == content
+    }
+
+    static func hasSameContent(_ lhs: ClipboardItem, _ rhs: ClipboardItem) -> Bool {
+        hasSameContent(lhs, asContent: rhs.content, contentType: rhs.contentType, imageData: rhs.imageData)
+    }
+
     var pinnedItems: [ClipboardItem] {
         items.filter { $0.isPinned }
     }
@@ -68,15 +96,21 @@ final class HistoryStore {
 
     func addItem(_ content: String, contentType: ClipboardContentType = .text, imageData: Data? = nil) {
         guard !content.isEmpty else { return }
-        if items.contains(where: { $0.isPinned && $0.content == content }) {
+        if items.contains(where: {
+            $0.isPinned && Self.hasSameContent($0, asContent: content, contentType: contentType, imageData: imageData)
+        }) {
             let oldCount = items.count
-            items.removeAll { !$0.isPinned && $0.content == content }
+            items.removeAll {
+                !$0.isPinned && Self.hasSameContent($0, asContent: content, contentType: contentType, imageData: imageData)
+            }
             if items.count != oldCount { save() }
             return
         }
 
         // Deduplicate: if identical content exists, move it to top
-        if let existingIndex = items.firstIndex(where: { $0.content == content && !$0.isPinned }) {
+        if let existingIndex = items.firstIndex(where: {
+            !$0.isPinned && Self.hasSameContent($0, asContent: content, contentType: contentType, imageData: imageData)
+        }) {
             var updated = items[existingIndex]
             updated = ClipboardItem(
                 id: updated.id,
@@ -148,7 +182,7 @@ final class HistoryStore {
         copy[index] = updated
         if updated.isPinned {
             copy.removeAll {
-                $0.id != updated.id && !$0.isPinned && $0.content == updated.content
+                $0.id != updated.id && !$0.isPinned && Self.hasSameContent($0, updated)
             }
         }
         items = copy
